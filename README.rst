@@ -1,0 +1,5 @@
+OOpgrade
+========
+
+OpenObject upgrade lib forked from `openupgrade project <https://github.com/OCA/OpenUpgrade/tree/5.0/bin/openupgrade>`_
+and improved and adapted to meed our needs.
