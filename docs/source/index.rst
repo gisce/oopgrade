@@ -5,6 +5,14 @@ This project, is based on `OpenUpgrade <https://github.com/OCA/openupgrade>`_,
 and provides a set of functions to migrate schema and data from our openobject
 server.
 
+Release v\ |version|
+
+.. image:: https://drone.io/github.com/gisce/oopgrade/status.png
+  :target: https://drone.io/github.com/gisce/oopgrade/latest
+
+.. note::
+    The API is quite unstable due the active development
+
 Contents:
 
 .. toctree::
