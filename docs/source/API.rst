@@ -20,3 +20,9 @@ General methods
 
 .. automodule:: oopgrade.oopgrade
    :members:
+
+Version
+-------
+
+.. automodule:: oopgrade.version
+   :members:

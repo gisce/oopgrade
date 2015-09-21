@@ -19,6 +19,8 @@ setup(
     author_email='devel@gisce.net',
     url='https://github.com/gisce/oopgrade',
     packages=find_packages(),
-    install_requires=[],
+    install_requires=[
+        'semver'
+    ],
     license='AGPL-3',
 )
