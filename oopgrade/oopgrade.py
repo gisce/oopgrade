@@ -20,6 +20,7 @@ __all__ = [
     'set_defaults',
     'update_module_names',
     'add_ir_model_fields',
+    'install_modules'
 ]    
 
 
@@ -273,3 +274,18 @@ def add_ir_model_fields(cr, columnspec):
         query = 'ALTER TABLE ir_model_fields ADD COLUMN %s %s' % (
             column)
         logged_query(cr, query, [])
+
+
+def install_modules(cursor, *modules):
+    """Installs a module.
+
+    :param cr: Cursor database
+    :param module: The module to install
+    """
+    uid = 1
+    mod_obj = pooler.get_pool(cursor.dbname).get('ir.module.module')
+    mod_obj.update_list(cursor, uid)
+    search_params = [('name', 'in', modules), ('state', '=', 'uninstalled')]
+    mod_ids = mod_obj.search(cursor, uid, search_params)
+    mod_obj.button_install(cursor, uid, mod_ids)
+    return True
