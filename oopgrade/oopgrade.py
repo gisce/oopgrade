@@ -138,6 +138,26 @@ def drop_columns(cr, column_spec):
                     table, column)
 
 
+def add_columns(cr, column_spec):
+    """
+    Add columns
+
+    :param cr: Database cursor
+    :param column_spec: a hash with table keys, with lists of tuples as values.
+        Tuples consist of (column name, type).
+    """
+    for table in column_spec:
+        for (column, type_) in column_spec[table]:
+            logger.info("table %s: add column %s",
+                        table, column)
+            if column_exists(cr, table, column):
+                logger.warn("table %s: column %s already exists",
+                            table, column)
+            else:
+                cr.execute('ALTER TABLE "%s" ADD COLUMN "%s" %s' %
+                           (table, column, type_))
+
+
 def delete_model_workflow(cr, model):
     """ 
     Forcefully remove active workflows for obsolete models,
