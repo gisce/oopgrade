@@ -6,7 +6,7 @@ import logging
 import tools
 
 
-logger = logging.getLogger('oopgrade')
+logger = logging.getLogger('openerp.oopgrade')
 
 
 __all__ = [
@@ -18,6 +18,7 @@ __all__ = [
     'column_exists',
     'delete_model_workflow',
     'set_defaults',
+    'set_stored_function',
     'update_module_names',
     'add_ir_model_fields',
     'install_modules'
@@ -156,6 +157,48 @@ def add_columns(cr, column_spec):
             else:
                 cr.execute('ALTER TABLE "%s" ADD COLUMN "%s" %s' %
                            (table, column, type_))
+
+
+def set_stored_function(cr, obj, fields):
+    """
+    Init newly created stored functions calling the function and storing them
+    to the database.
+
+    ..note:: Use in the post stage
+
+    :param cr: Database cursor
+    :param obj: Object
+    :param fields: list of fields
+    """
+    from datetime import datetime
+
+    for k in fields:
+        logger.info("storing computed values of fields.function '%s'" % (k,))
+        field = obj._columns[k]
+        ss = field._symbol_set
+        update_query = 'UPDATE "%s" SET "%s"=%s WHERE id=%%s' % (
+        obj._table, k, ss[0])
+        cr.execute('select id from ' + obj._table)
+        ids_lst = map(lambda x: x[0], cr.fetchall())
+        logger.info("storing computed values for %s objects" % len(ids_lst))
+        start = datetime.now()
+
+        def chunks(l, n):
+            """Yield successive n-sized chunks from l."""
+            for i in range(0, len(l), n):
+                yield l[i:i + n]
+
+        for ids in chunks(ids_lst, 100):
+            res = field.get(cr, obj, ids, k, 1, {})
+            for key, val in res.items():
+                if field._multi:
+                    val = val[k]
+                # if val is a many2one, just write the ID
+                if type(val) == tuple:
+                    val = val[0]
+                if (val is not False) or (type(val) != bool):
+                    cr.execute(update_query, (ss[1](val), key))
+        logger.info("stored in {0}".format(datetime.now() - start))
 
 
 def delete_model_workflow(cr, model):
