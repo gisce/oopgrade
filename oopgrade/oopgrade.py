@@ -16,6 +16,7 @@ __all__ = [
     'drop_columns',
     'table_exists',
     'column_exists',
+    'change_column_type',
     'delete_model_workflow',
     'set_defaults',
     'set_stored_function',
@@ -302,6 +303,21 @@ def column_exists(cr, table, column):
         'AND attname = %s',
         (table, column));
     return cr.fetchone()[0] == 1
+
+
+def change_column_type(cursor, table, column, new_def):
+    """
+    :param cr: Cursor
+    :param table: Table name
+    :param column: column name
+    :param new_def: new def as in postgreSQL language
+    :return: execute result
+    """
+    logged_query(
+        cursor,
+        'ALTER TABLE %s ALTER COLUMN %s TYPE %s' % (table, column, new_def)
+    )
+    return True
 
 
 def update_module_names(cr, namespec):
