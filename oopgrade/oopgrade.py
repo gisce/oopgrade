@@ -305,18 +305,21 @@ def column_exists(cr, table, column):
     return cr.fetchone()[0] == 1
 
 
-def change_column_type(cursor, table, column, new_def):
+def change_column_type(cursor, column_spec):
     """
     :param cr: Cursor
-    :param table: Table name
-    :param column: column name
-    :param new_def: new def as in postgreSQL language
+    :param colum_spec: a hash with table keys, with lists of tuples as values.
+        Tuples consist of (column name, new_def). new_def as in
+        posgresql_language
     :return: execute result
     """
-    logged_query(
-        cursor,
-        'ALTER TABLE %s ALTER COLUMN %s TYPE %s' % (table, column, new_def)
-    )
+    for table, spec in column_spec.items():
+        for column, new_def in spec:
+            logged_query(
+                cursor,
+                'ALTER TABLE %s ALTER COLUMN %s TYPE %s' % (
+                    table, column, new_def)
+            )
     return True
 
 
