@@ -1,8 +1,8 @@
 OOpgrade
 ========
 
-.. image:: https://drone.io/github.com/gisce/oopgrade/status.png
-  :target: https://drone.io/github.com/gisce/oopgrade/latest
+.. image:: https://travis-ci.org/gisce/oopgrade.svg?branch=master
+    :target: https://travis-ci.org/gisce/oopgrade
 
 .. note::
     The API is quite unstable due the active development
