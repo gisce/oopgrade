@@ -21,7 +21,8 @@ __all__ = [
     'set_stored_function',
     'update_module_names',
     'add_ir_model_fields',
-    'install_modules'
+    'install_modules',
+    'get_foreign_keys'
 ]    
 
 
@@ -352,3 +353,37 @@ def install_modules(cursor, *modules):
     mod_ids = mod_obj.search(cursor, uid, search_params)
     mod_obj.button_install(cursor, uid, mod_ids)
     return True
+
+
+def get_foreign_keys(cursor, table):
+    """Get all the foreign keys from the given table
+
+    Returns a dict with column_name as a key and the following keys:
+      - constraint_name
+      - table_name
+      - column_name
+      - foreign_table_name
+      - foreign_column_name
+
+    :param cursor: Database cursor
+    :param table: Table name to get the foreign keys
+    :return: dict
+    """
+    cursor.execute(
+        "SELECT"
+        " tc.constraint_name, tc.table_name, kcu.column_name,"
+        " ccu.table_name AS foreign_table_name,"
+        " ccu.column_name AS foreign_column_name"
+        " FROM "
+        "   information_schema.table_constraints AS tc"
+        " JOIN information_schema.key_column_usage AS kcu"
+        "   ON tc.constraint_name = kcu.constraint_name"
+        " JOIN information_schema.constraint_column_usage AS ccu"
+        "   ON ccu.constraint_name = tc.constraint_name"
+        " WHERE constraint_type = 'FOREIGN KEY' AND tc.table_name=%s",
+        (table,)
+    )
+    res = {}
+    for fk in cursor.dictfetchall():
+        res[fk['column_name']] = fk.copy()
+    return res
