@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
-from osv import osv
-import pooler
 import logging
-import tools
 
 
 logger = logging.getLogger('openerp.oopgrade')
@@ -52,6 +49,7 @@ def load_data(cr, module_name, filename, idref=None, mode='init'):
     from files that are marked with 'noupdate'. Defaults to 'init'.
 
     """
+    import tools
 
     if idref is None:
         idref = {}
@@ -237,6 +235,7 @@ def set_defaults(cr, pool, default_spec, force=False):
     actually do require the model's default, in combination with the post \
     script possible being run multiple times.
     """
+    from osv import osv
 
     def write_value(ids, field, value):
         logger.info("model %s, field %s: setting default value of %d resources to %s",
@@ -365,6 +364,8 @@ def install_modules(cursor, *modules):
     :param cr: Cursor database
     :param module: The module to install
     """
+    import pooler
+
     uid = 1
     mod_obj = pooler.get_pool(cursor.dbname).get('ir.module.module')
     mod_obj.update_list(cursor, uid)
