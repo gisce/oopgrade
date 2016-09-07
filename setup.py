@@ -20,7 +20,10 @@ setup(
     url='https://github.com/gisce/oopgrade',
     packages=find_packages(),
     install_requires=[
-        'semver'
+        'ooquery',
+        'semver',
+        'lxml',
+        'python-sql'
     ],
     license='AGPL-3',
 )

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<openerp>
+    <data>
+        <record id="record_id_0001" model="test.model">
+            <field name="name">name</field>
+            <field name="description">this is a description</field>
+        </record>
+        <record id="record_id_0003" model="test.search.model">
+            <field name="code">code</field>
+            <field name="name">Name</field>
+            <field name="flag" eval="0" />
+            <field name="relation" ref="other_module.xml_id"/>
+            <field name="partner_id" model="res.partner" search="[('ref', '=', '123')]"/>
+        </record>
+    </data>
+    <data noupdate="1">
+        <record id="record_id_0002" model="test.model">
+            <field name="name">name 2</field>
+            <field name="description">this is a description 2</field>
+        </record>
+    </data>
+</openerp>
