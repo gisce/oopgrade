@@ -15,6 +15,33 @@ DataRecord = namedtuple('DataRecord', ['id', 'model', 'noupdate', 'vals'])
 
 class DataMigration(object):
     """Data Migration class
+
+    :param content: XML Content to migrate
+    :param cursor: Database cursor
+    :param module: OpenObject module name
+    :param search_params: Dict where key is the model and value is the list
+    of fields to do the match.
+
+    Example::
+
+        from oopgrade import DataMigration
+
+        dm = DataMigration(xml_content, cursor, 'module_name', search_params={
+            'test.model': ['field1', 'field2']
+        })
+        dm.migrate()
+
+    In this case when a record for model `test.model` is found it will use the
+    fields `field1` and `field2` to do the match it will construct a search
+    query as::
+
+        [
+            ('field1', '=', 'content_xml_record_field1'),
+            ('field2', '=', 'content_xml_record_field2')
+        ]
+
+    .. note:: If no search_params is passed **all** the fields from the xml will
+              be used to create the search params
     """
     def __init__(self, content, cursor, module, search_params=None):
         self.content = content

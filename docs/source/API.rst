@@ -26,3 +26,9 @@ Version
 
 .. automodule:: oopgrade.version
    :members:
+
+Data migration
+--------------
+
+.. automodule:: oopgrade.data
+   :members:
