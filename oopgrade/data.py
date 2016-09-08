@@ -24,9 +24,6 @@ class DataMigration(object):
             search_params = {}
         self.search_params = search_params.copy()
         self.records = []
-        obj = objectify.fromstring(self.content)
-        for record in obj.iter(tag='record'):
-            self.records.append(self._record(record))
 
     def _record(self, record):
         vals = {}
@@ -75,9 +72,11 @@ class DataMigration(object):
         return self.cursor.fetchone()[0]
 
     def migrate(self):
+        obj = objectify.fromstring(self.content)
         t = Table('ir_model_data')
-        for record in self.records:
-            res_id = None
+        for xml_record in obj.iter(tag='record'):
+            record = self._record(xml_record)
+            self.records.append(record)
             sp = []
             for field in self.search_params.get(record.model, record.vals.keys()):
                 sp.append((field, '=', record.vals[field]))
