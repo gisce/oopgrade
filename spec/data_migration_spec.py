@@ -33,11 +33,11 @@ with description('Migrating _data.xml'):
 
         with it('must work without noupdate'):
             record = self.dm.records[0]
-            expect(record.noupdate).to(equal(0))
+            expect(record.noupdate).to(equal(False))
 
         with it('must work without noupdate=1'):
             record = self.dm.records[2]
-            expect(record.noupdate).to(equal(1))
+            expect(record.noupdate).to(equal(True))
 
         with it('must add fields to the records'):
             expect(self.dm.records[0].vals.keys()).to(contain('name', 'description'))
