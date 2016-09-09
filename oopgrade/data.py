@@ -54,7 +54,9 @@ class DataMigration(object):
 
     def _record(self, record):
         vals = {}
-        noupdate = int(record.getparent().attrib.get('noupdate', '0'))
+        noupdate = bool(
+            literal_eval(record.getparent().attrib.get('noupdate', '0'))
+        )
         for field in record.iter(tag='field'):
             key = field.attrib['name']
             attrs = field.attrib
