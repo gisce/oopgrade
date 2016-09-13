@@ -421,7 +421,7 @@ def module_is_installed(cursor, module_name):
 
     uid = 1
     mod_obj = pooler.get_pool(cursor.dbname).get('ir.module.module')
-    search_params = [('name', 'in', module_name),
+    search_params = [('name', '=', module_name),
                      ('state', 'in', MODULE_INSTALLED_STATES)]
     mod_ids = mod_obj.search(cursor, uid, search_params)
     return len(mod_ids) > 0
