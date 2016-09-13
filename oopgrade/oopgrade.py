@@ -5,6 +5,7 @@ import logging
 
 logger = logging.getLogger('openerp.oopgrade')
 
+MODULE_INSTALLED_STATES = ['installed', 'to upgrade', 'to remove']
 
 __all__ = [
     'load_data',
@@ -21,6 +22,7 @@ __all__ = [
     'add_ir_model_fields',
     'install_modules',
     'get_foreign_keys'
+    'module_is_installed',
 ]    
 
 
@@ -407,3 +409,19 @@ def get_foreign_keys(cursor, table):
     for fk in cursor.dictfetchall():
         res[fk['column_name']] = fk.copy()
     return res
+
+
+def module_is_installed(cursor, module_name):
+    """Test if modules is installed.
+
+    :param cr: Cursor database
+    :param module_name: The module name
+    """
+    import pooler
+
+    uid = 1
+    mod_obj = pooler.get_pool(cursor.dbname).get('ir.module.module')
+    search_params = [('name', 'in', module_name),
+                     ('state', 'in', MODULE_INSTALLED_STATES)]
+    mod_ids = mod_obj.search(cursor, uid, search_params)
+    return len(mod_ids) > 0
