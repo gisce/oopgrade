@@ -322,7 +322,7 @@ def create_index(cursor, table, index_name, columns):
         """
         select t.relname as table_name, i.relname as index_name,
                am.amname as typeof,
-               array_to_string(array_agg(a.attname), ', ') as column_names
+               array_agg(a.attname) as column_names
         from
             pg_class t, pg_class i, pg_index ix,
             pg_attribute a, pg_am am
@@ -345,7 +345,7 @@ def create_index(cursor, table, index_name, columns):
     for x in res:
         if indexname == x['index_name']:
             found_idx_name = True
-        index_columns = map(str.strip, columns.split(','))
+        index_columns = x['column_names']
         if len(columns) == len(index_columns):
             equal_order = True
             for cols in zip(columns, index_columns):
