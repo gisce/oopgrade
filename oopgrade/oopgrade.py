@@ -305,6 +305,74 @@ def column_exists(cr, table, column):
     return cr.fetchone()[0] == 1
 
 
+def create_index(cursor, table, index_name, columns):
+    '''
+    :param cursor:
+    :param table:
+    :param index_name: :type str Limit 63 cropped characters without spaces. Giscesdata replaced to "gd"
+    :param columns :type list
+    :return:
+    '''
+
+    # CREATE INDEX ON FKs
+    indexname = index_name.lower()
+    indexname = indexname.replace('giscedata', 'gd')[:63]
+
+    cursor.execute(
+        """
+        select t.relname as table_name, i.relname as index_name,
+               am.amname as typeof,
+               array_to_string(array_agg(a.attname), ', ') as column_names
+        from
+            pg_class t, pg_class i, pg_index ix,
+            pg_attribute a, pg_am am
+        where
+            t.oid = ix.indrelid
+            and i.oid = ix.indexrelid
+            and a.attrelid = t.oid
+            and a.attnum = ANY(ix.indkey)
+            and i.relam = am.oid
+            and t.relkind = 'r'
+            and t.relname = %s
+        group by
+            t.relname, i.relname, am.amname
+        """,
+        (table, )
+    )
+    res = cursor.dictfetchall()
+    found_idx_name = False
+    found_columns = False
+    for x in res:
+        if indexname == x['index_name']:
+            found_idx_name = True
+        index_columns = map(str.strip, columns.split(','))
+        if len(columns) == len(index_columns):
+            equal_order = True
+            for cols in zip(columns, index_columns):
+                if cols[0] != cols[1]:
+                    equal_order = False
+            if equal_order:
+                found_columns = True
+    columns_text = ','.join(columns)
+    if not found_idx_name and not found_columns:
+        logger.info(
+            'create index on '
+            'columns {0}  in table {1}'.format(
+                columns_text, table
+            )
+        )
+        cursor.execute(
+            'CREATE INDEX "%s" ON "%s" (%s)' % (
+                indexname, table, columns_text)
+        )
+    else:
+        logger.warn(
+            'SKIP create index, because detected index '
+            'for columns {0} in table'
+            ' {1}'.format(columns_text, table)
+        )
+
+
 def change_column_type(cursor, column_spec):
     """
     :param cr: Cursor

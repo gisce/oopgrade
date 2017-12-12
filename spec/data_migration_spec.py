@@ -160,4 +160,42 @@ with description('Migrating _data.xml'):
                 *expected_sql
             ))
 
+    with description('Create index'):
+        with it(''):
+            result = [
+                {
+                    'table_name': 'giscedata_polissa',
+                    'index_name': 'giscedata_polissa_name_index', 'typeof': 'btree',
+                    'column_names': 'name'
+                },
+                {
+                    'table_name': 'giscedata_polissa',
+                    'index_name': 'giscedata_polissa_name_unic', 'typeof': 'btree',
+                    'column_names': 'name'
+                },
+                {
+                    'table_name': 'giscedata_polissa',
+                    'index_name': 'giscedata_polissa_ordre_carta_index', 'typeof': 'btree',
+                    'column_names': 'ordre_carta'},
+                {
+                    'table_name': 'giscedata_polissa',
+                    'index_name': 'giscedata_polissa_pagador_index', 'typeof': 'btree',
+                    'column_names': 'pagador'
+                },
+                {
+                    'table_name': 'giscedata_polissa',
+                    'index_name': 'giscedata_polissa_pkey', 'typeof': 'btree',
+                    'column_names': 'id'
+                },
+                {
+                    'table_name': 'giscedata_polissa',
+                    'index_name': 'giscedata_polissa_zona_carta_index', 'typeof': 'btree',
+                    'column_names': 'zona_carta'
+                },
+                {
+                    'table_name': 'giscedata_polissa',
+                    'index_name': 'idx_giscedata_polissa_dadbc', 'typeof': 'btree',
+                    'column_names': 'cups, data_alta, data_baixa'
+                }
+            ]
 
