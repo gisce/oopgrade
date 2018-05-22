@@ -295,7 +295,17 @@ def logged_query(cr, query, args=None):
 
 
 def column_exists(cr, table, column):
-    """ Check whether a certain column exists """
+    """
+    Check whether a certain column exists
+
+    :param cr: Database cursor
+    :param table: Table name
+    :type table: str or unicode
+    :param column: Column
+    :type column: str or unicode
+    :return: True if the column exists
+    :rtype: bool
+    """
     cr.execute(
         'SELECT count(attname) FROM pg_attribute '
         'WHERE attrelid = '
