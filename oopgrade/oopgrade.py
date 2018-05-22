@@ -417,3 +417,34 @@ def get_foreign_keys(cursor, table):
     for fk in cursor.dictfetchall():
         res[fk['column_name']] = fk.copy()
     return res
+
+
+def describe_geom_table(cursor, table):
+    """
+    Returns the geometry description of the table
+
+    :param cursor: Database cursor
+    :param table: Table
+    :type table:str or unicode
+    :return: Geom schema
+    :rtype: dict
+    """
+
+    sql = """
+    SELECT 
+      f_geometry_column As col_name, 
+      type, srid, 
+      coord_dimension As ndims
+    FROM geometry_columns
+    WHERE f_table_name = %(table)s;
+    """
+    cursor.execute(sql, {"table": table})
+    data = cursor.fetchall()
+    res = {}
+    for line in data:
+        res[line[0]] = {
+            "geom_type": line[1],
+            "srid": line[2],
+            "dimensions": line[3]
+        }
+    return res
