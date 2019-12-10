@@ -23,7 +23,8 @@ setup(
         'ooquery',
         'semver',
         'lxml',
-        'python-sql'
+        'python-sql',
+        'six'
     ],
     license='AGPL-3',
 )

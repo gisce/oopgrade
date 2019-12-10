@@ -1,7 +1,11 @@
 # coding=utf-8
 from spec.fixtures import get_fixture
 from expects import *
-from mock import Mock, call
+import six
+if six.PY2:
+    from mock import Mock, call
+else:
+    from unittest.mock import Mock, call
 
 from oopgrade import DataMigration
 from oopgrade.data import DataRecord
