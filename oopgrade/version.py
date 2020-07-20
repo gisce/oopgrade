@@ -1,5 +1,4 @@
-from past.builtins import basestring
-from builtins import object
+import six
 import semver
 
 
@@ -36,27 +35,27 @@ class Version(object):
         self.version = semver.bump_patch(self.version)
 
     def __gt__(self, other):
-        if isinstance(other, basestring):
+        if isinstance(other, six.string_types):
             other = Version(other)
         return semver.match(self.version, '>{}'.format(other.version))
 
     def __ge__(self, other):
-        if isinstance(other, basestring):
+        if isinstance(other, six.string_types):
             other = Version(other)
         return semver.match(self.version, '>={}'.format(other.version))
 
     def __lt__(self, other):
-        if isinstance(other, basestring):
+        if isinstance(other, six.string_types):
             other = Version(other)
         return semver.match(self.version, '<{}'.format(other.version))
 
     def __le__(self, other):
-        if isinstance(other, basestring):
+        if isinstance(other, six.string_types):
             other = Version(other)
         return semver.match(self.version, '<={}'.format(other.version))
 
     def __eq__(self, other):
-        if isinstance(other, basestring):
+        if isinstance(other, six.string_types):
             other = Version(other)
         return semver.match(self.version, '=={}'.format(other.version))
 
