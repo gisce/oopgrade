@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
-from builtins import str
-from builtins import range
+import six
+if six.PY3:
+    from builtins import str
+    from builtins import range
 import os
 import logging
 

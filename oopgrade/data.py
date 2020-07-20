@@ -1,7 +1,9 @@
 # coding=utf-8
 from __future__ import absolute_import
+import six
 
-from builtins import object
+if six.PY3:
+    from builtins import object
 from collections import namedtuple
 from ast import literal_eval
 
