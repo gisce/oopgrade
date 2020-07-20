@@ -1,5 +1,5 @@
 # coding=utf-8
-from spec.fixtures import get_fixture
+from .fixtures import get_fixture
 from expects import *
 import six
 if six.PY2:
@@ -13,7 +13,7 @@ from oopgrade.data import DataRecord
 
 with description('Migrating _data.xml'):
     with before.all:
-        with open(get_fixture('migration_data.xml'), 'r') as f:
+        with open(get_fixture('migration_data.xml'), 'rb') as f:
             self.xml = f.read()
 
     with it('must parse xml files with records'):
