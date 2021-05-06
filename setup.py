@@ -23,7 +23,14 @@ setup(
         'ooquery',
         'semver',
         'lxml',
-        'python-sql'
+        'python-sql',
+        'tqdm',
+        'click',
+        'pip'
     ],
     license='AGPL-3',
+    entry_points='''
+      [console_scripts]
+      oopgrade=oopgrade.cli:oopgrade
+    '''
 )
