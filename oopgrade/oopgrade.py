@@ -5,6 +5,7 @@ import logging
 
 logger = logging.getLogger('openerp.oopgrade')
 
+MODULE_INSTALLED_STATES = ['installed', 'to upgrade', 'to remove']
 
 __all__ = [
     'load_data',
@@ -20,7 +21,9 @@ __all__ = [
     'update_module_names',
     'add_ir_model_fields',
     'install_modules',
-    'get_foreign_keys'
+    'get_foreign_keys',
+    'get_installed_modules',
+    'module_is_installed',
 ]    
 
 
@@ -295,7 +298,17 @@ def logged_query(cr, query, args=None):
 
 
 def column_exists(cr, table, column):
-    """ Check whether a certain column exists """
+    """
+    Check whether a certain column exists
+
+    :param cr: Database cursor
+    :param table: Table name
+    :type table: str or unicode
+    :param column: Column
+    :type column: str or unicode
+    :return: True if the column exists
+    :rtype: bool
+    """
     cr.execute(
         'SELECT count(attname) FROM pg_attribute '
         'WHERE attrelid = '
@@ -418,3 +431,19 @@ def get_installed_modules(cursor):
         "WHERE state = 'installed'"
     )
     return [x[0] for x in cursor.fetchall()]
+
+  
+def module_is_installed(cursor, module_name):
+    """Test if modules is installed.
+
+    :param cr: Cursor database
+    :param module_name: The module name
+    """
+    import pooler
+
+    uid = 1
+    mod_obj = pooler.get_pool(cursor.dbname).get('ir.module.module')
+    search_params = [('name', '=', module_name),
+                     ('state', 'in', MODULE_INSTALLED_STATES)]
+    mod_ids = mod_obj.search(cursor, uid, search_params)
+    return len(mod_ids) > 0
