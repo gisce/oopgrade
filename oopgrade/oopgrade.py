@@ -21,7 +21,8 @@ __all__ = [
     'update_module_names',
     'add_ir_model_fields',
     'install_modules',
-    'get_foreign_keys'
+    'get_foreign_keys',
+    'get_installed_modules',
     'module_is_installed',
 ]    
 
@@ -421,6 +422,17 @@ def get_foreign_keys(cursor, table):
     return res
 
 
+def get_installed_modules(cursor):
+    cursor.execute(
+        "SELECT"
+        " name "
+        "FROM "
+        "  ir_module_module "
+        "WHERE state = 'installed'"
+    )
+    return [x[0] for x in cursor.fetchall()]
+
+  
 def module_is_installed(cursor, module_name):
     """Test if modules is installed.
 
