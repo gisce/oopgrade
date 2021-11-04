@@ -12,18 +12,7 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 
-def get_dependencies(module, addons_path=None, deps=None):
-    """Get all the dependencies of a module without database
-
-    Using `__terp__.py` files and is used to check requirements.txt in the
-    dependencies.
-
-    :param module: Module to find the dependencies
-    :param addons_path: Path to find the modules
-    :return: a listt of dependencies.
-    """
-    if deps is None:
-        deps = []
+def get_terp_values(module, addons_path=None):
     pj = os.path.join
     module_path = pj(addons_path, module)
     if not os.path.exists(module_path):
@@ -39,6 +28,23 @@ def get_dependencies(module, addons_path=None, deps=None):
         )
     with open(terp_path, 'r') as terp_file:
         terp = literal_eval(terp_file.read())
+    return terp
+
+
+def get_dependencies(module, addons_path=None, deps=None):
+    """Get all the dependencies of a module without database
+
+    Using `__terp__.py` files and is used to check requirements.txt in the
+    dependencies.
+
+    :param module: Module to find the dependencies
+    :param addons_path: Path to find the modules
+    :return: a listt of dependencies.
+    """
+    if deps is None:
+        deps = []
+
+    terp = get_terp_values(module, addons_path)
 
     for dep in terp['depends']:
         if dep not in deps:
