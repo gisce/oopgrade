@@ -4,15 +4,20 @@ import click
 from tqdm import tqdm
 import psycopg2
 import ConfigParser
+from osconf import config_from_environment
 
 
 @click.group()
-@click.option('--config')
+@click.option('--config', required=False, default=None)
 @click.pass_context
 def oopgrade(ctx, config):
-    conf = ConfigParser.ConfigParser()
-    conf.read(config)
-    ctx.obj = dict(conf.items('options'))
+    ctx.obj = {}
+    if config:
+        conf = ConfigParser.ConfigParser()
+        conf.read(config)
+        ctx.obj = dict(conf.items('options'))
+    envconf = config_from_environment('OPENERP')
+    ctx.obj.update(envconf)
 
 
 @oopgrade.group()

@@ -26,7 +26,8 @@ setup(
         'python-sql',
         'tqdm',
         'click',
-        'pip'
+        'pip',
+        'osconf',
     ],
     license='AGPL-3',
     entry_points='''
