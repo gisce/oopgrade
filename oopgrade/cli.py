@@ -7,6 +7,17 @@ import ConfigParser
 from osconf import config_from_environment
 
 
+class JSONParamType(click.ParamType):
+    name = "json"
+
+    def convert(self, value, param, ctx):
+        import json
+        try:
+            return json.loads(value)
+        except ValueError:
+            self.fail("{0} is not a valid json".format(value), param, ctx)
+
+
 @click.group()
 @click.option('--config', required=False, default=None)
 @click.pass_context
@@ -46,3 +57,29 @@ def install(conf):
         done += install_requirements(
             module, conf['addons_path'], silent=True, done=done
         )
+
+
+@oopgrade.command()
+@click.option('--channel')
+@click.argument('method')
+@click.option('--kwargs', type=JSONParamType())
+@click.pass_obj
+def pubsub(ctx, channel, method, kwargs):
+    import json
+    from oopgrade.pubsub import send_msg
+    secret = ctx.get('secret')
+    if not secret:
+        raise ValueError('Secret (key: secret) not found in config')
+    redis_url = ctx.get('redis_url')
+    if not redis_url:
+        raise ValueError('Redis URL (key: redis_url) not found in config')
+    db_name = ctx.get('db_name')
+    if not db_name:
+        raise ValueError('Databse (key: db_name) not found in config')
+    channel = '{}.{}'.format(db_name, channel)
+    msg = json.dumps({
+        'method': method,
+        'kwargs': kwargs or {}
+    })
+    sent_to = send_msg(redis_url, secret, channel, msg)
+    print('-> Message sent to {} nodes'.format(sent_to))

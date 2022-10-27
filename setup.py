@@ -28,6 +28,8 @@ setup(
         'click',
         'pip',
         'osconf',
+        'itsdangerous<2',
+        'redis<3.6',
     ],
     license='AGPL-3',
     entry_points='''
