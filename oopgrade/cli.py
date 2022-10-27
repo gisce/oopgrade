@@ -46,3 +46,23 @@ def install(conf):
         done += install_requirements(
             module, conf['addons_path'], silent=True, done=done
         )
+
+
+@oopgrade.command()
+@click.option('--channel')
+@click.argument('msg')
+@click.pass_obj
+def pubsub(ctx, channel, msg):
+    from oopgrade.pubsub import send_msg
+    secret = ctx.get('secret')
+    if not secret:
+        raise ValueError('Secret (key: secret) not found in config')
+    redis_url = ctx.get('redis_url')
+    if not redis_url:
+        raise ValueError('Redis URL (key: redis_url) not found in config')
+    db_name = ctx.get('db_name')
+    if not db_name:
+        raise ValueError('Databse (key: db_name) not found in config')
+    channel = '{}.{}'.format(db_name, channel)
+    sent_to = send_msg(redis_url, secret, channel, msg)
+    print('-> Message sent to {} nodes'.format(sent_to))
