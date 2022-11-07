@@ -9,6 +9,7 @@ MODULE_INSTALLED_STATES = ['installed', 'to upgrade', 'to remove']
 
 __all__ = [
     'load_data',
+    'load_data_records',
     'rename_columns',
     'rename_tables',
     'drop_columns',
@@ -68,6 +69,33 @@ def load_data(cr, module_name, filename, idref=None, mode='init'):
             tools.convert_xml_import(cr, module_name, fp, idref, mode=mode)
     finally:
         fp.close()
+
+
+def load_data_records(cr, module_name, filename, record_ids, mode='update'):
+    """
+    :param module_name: the name of the module
+    :param filename: the path to the filename, relative to the module \
+    directory.
+    :param record_ids: List of records to process
+    :param mode: one of 'init', 'update', 'demo'. Always use 'init' for adding new items \
+    from files that are marked with 'noupdate'. Defaults to 'update'.
+    """
+    from lxml import etree
+    from tools import config, xml_import
+
+    xml_path = '{}/{}/{}'.format(config['addons_path'], module_name, filename)
+    if not os.path.exists(xml_path):
+        raise Exception('Data {} not found'.format(xml_path))
+    if not record_ids:
+        raise Exception("Maybe you want to run 'load_data' because you don't pass any record id")
+    xml_to_import = xml_import(cr, module_name, {}, mode, noupdate=False)
+    doc = etree.parse(xml_path)
+    logger.info('{}: loading file {}'.format(module_name, filename))
+    for record_id in record_ids:
+        logger.info("{}: Loading record id: {}".format(module_name, record_id))
+        rec = doc.findall("//record[@id='{}']".format(record_id))[0]
+        data = doc.findall("//record[@id='{}']/..".format(record_id))[0]
+        xml_to_import._tags[rec.tag](cr, rec, data)
 
 
 def table_exists(cr, table):
