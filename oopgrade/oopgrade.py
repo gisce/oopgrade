@@ -170,15 +170,17 @@ def drop_columns(cr, column_spec):
                     table, column)
 
 
-def add_columns(cr, column_spec):
+def add_columns(cr, column_spec, multiple=False):
     """
     Add columns
 
     :param cr: Database cursor
     :param column_spec: a hash with table keys, with lists of tuples as values.
         Tuples consist of (column name, type).
+    :param multiple: Choose to create all columns at the same DDL sentence
     """
     for table in column_spec:
+        columns_spec = []
         for (column, type_) in column_spec[table]:
             logger.info("table %s: add column %s",
                         table, column)
@@ -186,8 +188,21 @@ def add_columns(cr, column_spec):
                 logger.warn("table %s: column %s already exists",
                             table, column)
             else:
-                cr.execute('ALTER TABLE "%s" ADD COLUMN "%s" %s' %
-                           (table, column, type_))
+                if multiple:
+                    columns_spec.append(
+                        'ADD COLUMN "{column}" {col_type}'.format(
+                            column=column, col_type=type_
+                        )
+                    )
+                else:
+                    cr.execute('ALTER TABLE "%s" ADD COLUMN "%s" %s' %
+                               (table, column, type_))
+        if multiple and columns_spec:
+            columns_ddl = ',\n'.join(columns_spec)
+            cr.execute('ALTER TABLE "{table}" {columns_ddl}'.format(
+                table=table, columns_ddl=columns_ddl
+            ))
+
 
 
 def set_stored_function(cr, obj, fields):
