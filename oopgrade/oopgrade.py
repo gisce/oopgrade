@@ -170,7 +170,7 @@ def drop_columns(cr, column_spec):
                     table, column)
 
 
-def add_columns(cr, column_spec, multiple=False):
+def add_columns(cr, column_spec, multiple=True):
     """
     Add columns
 
