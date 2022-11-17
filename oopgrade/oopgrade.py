@@ -199,6 +199,9 @@ def add_columns(cr, column_spec, multiple=True):
                                (table, column, type_))
         if multiple and columns_spec:
             columns_ddl = ',\n'.join(columns_spec)
+            logger.log('ALTER TABLE "{table}" {columns_ddl}'.format(
+                table=table, columns_ddl=columns_ddl
+            ))
             cr.execute('ALTER TABLE "{table}" {columns_ddl}'.format(
                 table=table, columns_ddl=columns_ddl
             ))
