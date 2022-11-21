@@ -93,8 +93,8 @@ def load_data_records(cr, module_name, filename, record_ids, mode='update'):
     logger.info('{}: loading file {}'.format(module_name, filename))
     for record_id in record_ids:
         logger.info("{}: Loading record id: {}".format(module_name, record_id))
-        rec = doc.findall("//record[@id='{}']".format(record_id))[0]
-        data = doc.findall("//record[@id='{}']/..".format(record_id))[0]
+        rec = doc.findall("//*[@id='{}']".format(record_id))[0]
+        data = doc.findall("//*[@id='{}']/..".format(record_id))[0]
         xml_to_import._tags[rec.tag](cr, rec, data)
 
 
