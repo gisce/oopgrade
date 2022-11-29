@@ -250,6 +250,37 @@ def delete_model_workflow(cr, model):
         "DELETE FROM wkf WHERE osv = %s", (model,))
 
 
+def clean_old_wizard(cr, pool, old_wizard_name, module):
+    """
+    :param cr:
+    :param pool:
+    :param old_wizard_name:
+    :param module:
+    """
+
+    wizard_obj = pool.get('ir.actions.wizard')
+    imd_obj = pool.get('ir.model.data')
+
+    # Buscar per name = old_wizard
+    wiz_id = wizard_obj.search(cr, 1, [('wiz_name', '=', old_wizard_name)])
+
+    # Buscar per model = ir.actions.wizard
+    # i per module = module
+    # i res_id = al resultat de buscar al wizard_obj
+
+    if wiz_id:
+        model_id = imd_obj.search(cr, 1,
+                                  [
+                                      ('model', '=', 'ir.actions.wizard'),
+                                      ('module', '=', module),
+                                      ('res_id', 'in', wiz_id),
+                                  ])
+
+        # un cop trobats els ids, validar que tots només tenen un registre i llavors eliminar-los tots
+        if model_id and len(wiz_id) == 1 and len(model_id) == 1:
+            wizard_obj.unlink(cr, 1, wiz_id)
+            imd_obj.unlink(cr, 1, model_id)
+
 def set_defaults(cr, pool, default_spec, force=False):
     """
     Set default value. Useful for fields that are newly required. Uses orm, so
