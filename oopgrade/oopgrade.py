@@ -2,7 +2,6 @@
 import os
 import logging
 
-
 logger = logging.getLogger('openerp.oopgrade')
 
 MODULE_INSTALLED_STATES = ['installed', 'to upgrade', 'to remove']
@@ -25,7 +24,7 @@ __all__ = [
     'get_foreign_keys',
     'get_installed_modules',
     'module_is_installed',
-]    
+]
 
 
 def load_data(cr, module_name, filename, idref=None, mode='init'):
@@ -117,7 +116,7 @@ def rename_columns(cr, column_spec):
     for table in column_spec.keys():
         for (old, new) in column_spec[table]:
             logger.info("table %s, column %s: renaming to %s",
-                     table, old, new)
+                        table, old, new)
             cr.execute('ALTER TABLE "%s" RENAME "%s" TO "%s"' % (table, old, new,))
 
 
@@ -163,11 +162,11 @@ def drop_columns(cr, column_spec):
         logger.info("table %s: drop column %s",
                     table, column)
         if column_exists(cr, table, column):
-            cr.execute('ALTER TABLE "%s" DROP COLUMN "%s"' % 
+            cr.execute('ALTER TABLE "%s" DROP COLUMN "%s"' %
                        (table, column))
         else:
             logger.warn("table %s: column %s did not exist",
-                    table, column)
+                        table, column)
 
 
 def add_columns(cr, column_spec):
@@ -190,6 +189,27 @@ def add_columns(cr, column_spec):
                            (table, column, type_))
 
 
+def add_columns_fk(cr, column_spec):
+    """
+    Add columns with foreign key constraint
+
+    :param cr: Database cursor
+    :param column_spec: a hash with table keys, with lists of tuples as values.
+        Tuples consist of (column name, type, foreing table name, foreing key column, on delete action).
+    """
+    for table in column_spec:
+        for (column, type_, fk_table_name, fk_col, on_delete_act) in column_spec[table]:
+            add_columns(cr, {table: [(column, type_)]})
+            constraint = table + '_' + column + '_fkey'
+            if not on_delete_act:
+                on_delete_act = 'restrict'
+            logger.info("table %s: add constraint %s",
+                        table, constraint)
+            cr.execute('ALTER TABLE "%s" ADD CONSTRAINT "%s" FOREIGN KEY (%s) REFERENCES %s(%s) \
+                        ON DELETE %s' %
+                       (table, constraint, column, fk_table_name, fk_col, on_delete_act))
+
+
 def set_stored_function(cr, obj, fields):
     """
     Init newly created stored functions calling the function and storing them
@@ -208,7 +228,7 @@ def set_stored_function(cr, obj, fields):
         field = obj._columns[k]
         ss = field._symbol_set
         update_query = 'UPDATE "%s" SET "%s"=%s WHERE id=%%s' % (
-        obj._table, k, ss[0])
+            obj._table, k, ss[0])
         cr.execute('select id from ' + obj._table)
         ids_lst = map(lambda x: x[0], cr.fetchall())
         logger.info("storing computed values for %s objects" % len(ids_lst))
@@ -270,7 +290,7 @@ def set_defaults(cr, pool, default_spec, force=False):
 
     def write_value(ids, field, value):
         logger.info("model %s, field %s: setting default value of %d resources to %s",
-                 model, field, len(ids), unicode(value))
+                    model, field, len(ids), unicode(value))
         obj.write(cr, 1, ids, {field: value})
 
     for model in default_spec.keys():
@@ -296,17 +316,19 @@ def set_defaults(cr, pool, default_spec, force=False):
                     # existence users is covered by foreign keys, so this is not needed
                     # cr.execute("SELECT %s.id, res_users.id FROM %s LEFT OUTER JOIN res_users ON (%s.create_uid = res_users.id) WHERE %s.id IN %s" %
                     #                     (obj._table, obj._table, obj._table, obj._table, tuple(ids),))
-                    cr.execute("SELECT id, COALESCE(create_uid, 1) FROM %s " % obj._table + "WHERE id in %s", (tuple(ids),))
+                    cr.execute("SELECT id, COALESCE(create_uid, 1) FROM %s " % obj._table + "WHERE id in %s",
+                               (tuple(ids),))
                     fetchdict = dict(cr.fetchall())
                     for id in ids:
                         write_value([id], field, obj._defaults[field](obj, cr, fetchdict.get(id, 1), None))
                         if id not in fetchdict:
-                            logger.info("model %s, field %s, id %d: no create_uid defined or user does not exist anymore",
-                                     model, field, id)
+                            logger.info(
+                                "model %s, field %s, id %d: no create_uid defined or user does not exist anymore",
+                                model, field, id)
             else:
                 error = ("OpenUpgrade: error setting default, field %s with "
                          "None default value not in %s' _defaults" % (
-                        field, model))
+                             field, model))
                 logger.error(error)
                 # this exeption seems to get lost in a higher up try block
                 osv.except_osv("OpenUpgrade", error)
@@ -460,7 +482,7 @@ def get_installed_modules(cursor):
     )
     return [x[0] for x in cursor.fetchall()]
 
-  
+
 def module_is_installed(cursor, module_name):
     """Test if modules is installed.
 
