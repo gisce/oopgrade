@@ -39,12 +39,17 @@ def requirements():
 @requirements.command()
 @click.pass_obj
 def install(conf):
+    import os.path
     from oopgrade.oopgrade import get_installed_modules
-    from oopgrade.utils import install_requirements
+    from oopgrade.utils import install_requirements, pip_install_requirements
     conn = psycopg2.connect(
         dbname=conf['db_name'], user=conf['db_user'],
         password=conf['db_password'], host=conf['db_host']
     )
+    main_req = os.path.join(conf['root_path'], '..', 'requirements.txt')
+    if os.path.exists(main_req):
+        click.echo('Installing main requirements')
+        pip_install_requirements(main_req, silent=True)
     click.echo('Getting installed modules...')
     with conn:
         with conn.cursor() as cursor:

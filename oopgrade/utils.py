@@ -48,11 +48,7 @@ def get_dependencies(module, addons_path=None, deps=None):
     return list(set(deps))
 
 
-def install_requirements(module, addons_path, silent=False, done=None):
-    """Install module requirements and its dependecies
-    """
-    if done is None:
-        done = []
+def pip_install_requirements(requirements_path, silent=False):
     subprocess_kwargs = {}
     if silent:
         FNULL = open(os.devnull, 'w')
@@ -60,6 +56,17 @@ def install_requirements(module, addons_path, silent=False, done=None):
             'stderr': FNULL,
             'stdout': FNULL
         }
+    pip = os.path.join(sys.prefix, 'bin', 'pip')
+    if os.path.exists(requirements_path):
+        logger.info('Requirements file %s found. Installing...', requirements_path)
+        subprocess.check_call([pip, "install", "-r", requirements_path], **subprocess_kwargs)
+
+
+def install_requirements(module, addons_path, silent=False, done=None):
+    """Install module requirements and its dependecies
+    """
+    if done is None:
+        done = []
     pip = os.path.join(sys.prefix, 'bin', 'pip')
     if os.path.exists(pip):
         modules_requirements = get_dependencies(module, addons_path)
@@ -69,8 +76,6 @@ def install_requirements(module, addons_path, silent=False, done=None):
                 continue
             addons_path_module = os.path.join(addons_path, module_requirements)
             req = os.path.join(addons_path_module, 'requirements.txt')
-            if os.path.exists(req):
-                logger.info('Requirements file %s found. Installing...', req)
-                subprocess.check_call([pip, "install", "-r", req], **subprocess_kwargs)
+            pip_install_requirements(req, silent)
         return modules_requirements
     return [module]
