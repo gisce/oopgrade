@@ -270,6 +270,81 @@ def delete_model_workflow(cr, model):
         "DELETE FROM wkf WHERE osv = %s", (model,))
 
 
+def clean_old_wizard(cr, old_wizard_name, module):
+    """
+    :param cr:
+    :param old_wizard_name:
+    :param module:
+    """
+
+    # Buscar per name = old_wizard
+    sql_wizard = """
+        SELECT id 
+        FROM ir_act_wizard
+        WHERE wiz_name = %(old_wiz_name)s
+    """
+    params_wizard = {
+        'old_wiz_name': old_wizard_name
+    }
+    cr.execute(sql_wizard, params_wizard)
+    wiz_ids = cr.fetchall()
+
+    # Buscar per model = ir.actions.wizard i per module = module
+    # i res_id = al resultat de buscar al wizard_obj
+    if wiz_ids:
+        for wiz_id in wiz_ids:
+            sql_model = """
+                SELECT id
+                FROM ir_model_data
+                WHERE model = 'ir.actions.wizard'
+                AND module = %(module)s
+                AND res_id in %(wiz_id)s
+            """
+            params_model = {
+                'module': module,
+                'wiz_id': wiz_id
+            }
+            cr.execute(sql_model, params_model)
+            model_id = cr.fetchone()
+
+            sql_value = """
+                SELECT id
+                FROM ir_values
+                WHERE value = 'ir.actions.wizard,%(wiz_id)s'
+            """
+            params_value = {
+                'wiz_id': wiz_id
+            }
+            cr.execute(sql_value, params_value)
+            value_id = cr.fetchone()
+
+            sql_del_wiz = """
+                DELETE FROM ir_act_wizard WHERE id in %(wiz_id)s;
+            """
+            params_del_wiz = {
+                'wiz_id': wiz_id
+            }
+            cr.execute(sql_del_wiz, params_del_wiz)
+
+            # un cop trobats els ids, validar que tots només tenen un registre i llavors eliminar-los tots
+            if model_id and len(model_id) == 1:
+                sql_del = """
+                    DELETE FROM ir_model_data WHERE id in %(model_id)s
+                """
+                params_del = {
+                    'model_id': model_id
+                }
+                cr.execute(sql_del, params_del)
+
+            if value_id and len(value_id) == 1:
+                sql_del = """
+                    DELETE FROM ir_value WHERE id in %(value_id)s
+                """
+                params_del = {
+                    'value_id': value_id
+                }
+                cr.execute(sql_del, params_del)
+
 def set_defaults(cr, pool, default_spec, force=False):
     """
     Set default value. Useful for fields that are newly required. Uses orm, so
