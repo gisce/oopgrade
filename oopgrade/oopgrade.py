@@ -114,7 +114,7 @@ def load_access_rules_from_model_name(cr, module_name, model_ids, filename='secu
     fp.close()
     # check
     for _model in model_ids:
-        if _model not in data_lines:
+        if '"{}"'.format(_model) not in data_lines:
             raise Exception('{} not found in {}'.format(_model, pathname))
     tools.convert_csv_import(cr, module_name, filename, data_lines, mode=mode)
 
