@@ -24,6 +24,7 @@ __all__ = [
     'get_foreign_keys',
     'get_installed_modules',
     'module_is_installed',
+    'load_access_rules_from_model_name'
 ]
 
 
@@ -95,6 +96,27 @@ def load_data_records(cr, module_name, filename, record_ids, mode='update'):
         rec = doc.findall("//*[@id='{}']".format(record_id))[0]
         data = doc.findall("//*[@id='{}']/..".format(record_id))[0]
         xml_to_import._tags[rec.tag](cr, rec, data)
+
+
+def load_access_rules_from_model_name(cr, module_name, model_ids, filename='security/ir.model.access.csv', mode='init'):
+    # Example: load_access_rules_from_model_name(cursor, 'base', ['model_ir_auto_vacuum'], mode='init')
+    import tools
+    if not isinstance(model_ids, (tuple, list)):
+        model_ids = [model_ids]
+
+    logger.info('%s: loading %s %s' % (module_name, filename, model_ids))
+    _, ext = os.path.splitext(filename)
+    pathname = os.path.join(module_name, filename)
+    fp = tools.file_open(pathname)
+    data_lines = '\n'.join(
+        [_l for i, _l in enumerate(fp.readlines()) if i == 0 or _l.split(',')[2].replace('"', "") in model_ids]
+    )
+    fp.close()
+    # check
+    for _model in model_ids:
+        if '"{}"'.format(_model) not in data_lines:
+            raise Exception('{} not found in {}'.format(_model, pathname))
+    tools.convert_csv_import(cr, module_name, filename, data_lines, mode=mode)
 
 
 def table_exists(cr, table):
