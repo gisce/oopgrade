@@ -108,9 +108,17 @@ def load_access_rules_from_model_name(cr, module_name, model_ids, filename='secu
     _, ext = os.path.splitext(filename)
     pathname = os.path.join(module_name, filename)
     fp = tools.file_open(pathname)
-    data_lines = '\n'.join(
-        [_l for i, _l in enumerate(fp.readlines()) if i == 0 or _l.split(',')[2].replace('"', "") in model_ids]
-    )
+    file_lines = fp.readlines()
+    clean_str = lambda _s: _s.replace('\n', '').replace('\t', '').replace('\r', '')
+    header = clean_str(file_lines.pop(0))
+    header_len = len(header.split(','))
+    rules_lines = [header]
+    for _f_line in file_lines:
+        clean_line = clean_str(_f_line)
+        split_line = clean_line.split(',')
+        if len(split_line) == header_len and split_line[2].replace('"', "") in model_ids:
+            rules_lines.append(clean_line)
+    data_lines = '\n'.join(rules_lines)
     fp.close()
     # check
     for _model in model_ids:
