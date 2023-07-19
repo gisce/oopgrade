@@ -52,6 +52,7 @@ def load_data(cr, module_name, filename, idref=None, mode='init'):
     :param mode: one of 'init', 'update', 'demo'. Always use 'init' for adding new items \
     from files that are marked with 'noupdate'. Defaults to 'init'.
 
+
     """
     import tools
 
@@ -374,6 +375,80 @@ def clean_old_wizard(cr, old_wizard_name, module):
                     'value_id': value_id
                 }
                 cr.execute(sql_del, params_del)
+
+
+def clean_deleted_views(cursor, module_name, view_names):
+    """
+    Clean the <ir.ui.view> and <ir.model.data> registers associated to the
+    views passed as parameter that were deleted from the specified module.
+
+    NOTE: Ideally the 'view_names' should be a list but if it is one view only it
+    accepts a string.
+
+    :param cursor: Database cursor
+    :param module_name: Module name where the deleted views were
+    :type module_name: str
+    :param view_names: View names of the deleted views
+    :type view_names: list[str]
+    """
+    if not view_names:
+        raise Exception('You have to specify a list of view names')
+    if not module_name:
+        raise Exception(
+            'You have to specify a module where the record views are'
+        )
+    if not isinstance(view_names, (list)):
+        view_names = [view_names]
+
+    for view_name in view_names:
+        # Find by name = view_name.
+        # It should have only one.
+        sql_view = """
+                SELECT id 
+                FROM ir_ui_view
+                WHERE name = %(view_name)s
+            """
+        params_view = {
+            'view_name': view_name
+        }
+        cursor.execute(sql_view, params_view)
+        view_id = cursor.fetchone()
+
+        # Find by model = ir.ui.view, module = module & res_id = the view_id
+        if view_id and len(view_id) == 1:
+            logger.info(" {}: Deleting view: {}".format(module_name, view_name))
+            sql_model = """
+                    SELECT id
+                    FROM ir_model_data
+                    WHERE model = 'ir.ui.view'
+                    AND module = %(module)s
+                    AND res_id = %(view_id)s
+                """
+            params_model = {
+                'module': module_name,
+                'view_id': view_id
+            }
+            cursor.execute(sql_model, params_model)
+            model_id = cursor.fetchone()
+            # Delete from model data.
+            # It should have only one.
+            if model_id and len(model_id) == 1:
+                sql_model_del = """
+                        DELETE FROM ir_model_data WHERE id = %(model_id)s
+                    """
+                params_model_del = {
+                    'model_id': model_id
+                }
+                cursor.execute(sql_model_del, params_model_del)
+            # Delete from ir ui view.
+            sql_view_del = """
+                        DELETE FROM ir_ui_view WHERE id = %(view_id)s
+                    """
+            params_view_del = {
+                'view_id': view_id
+            }
+            cursor.execute(sql_view_del, params_view_del)
+
 
 def set_defaults(cr, pool, default_spec, force=False):
     """
