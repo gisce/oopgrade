@@ -425,7 +425,7 @@ def clean_deleted_views(cursor, module_name, view_ids):
         # It should have only one.
         if model_id and len(model_id) == 1:
             ui_view_id = mod_data_obj.read(
-                cursor, uid, model_id, ['res_id']
+                cursor, uid, model_id[0], ['res_id']
             )['res_id']
             # Delete from model data.
             sql_model_del = """
