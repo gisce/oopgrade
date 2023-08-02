@@ -61,6 +61,10 @@ def delete_record(cursor, module_name, record_names):
 
             model_o = pool.get(model_data_vs['model'])
             model_o.unlink(cursor, uid, model_data_vs['res_id'])
+        elif model_data_vs and len(model_data_vs) > 1:
+            raise Exception(
+                "More than one record found for model %s" % (model_data_vs['model'])
+            )
 
 def load_data(cr, module_name, filename, idref=None, mode='init'):
     """
