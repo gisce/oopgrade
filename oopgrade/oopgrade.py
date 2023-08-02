@@ -24,9 +24,42 @@ __all__ = [
     'get_foreign_keys',
     'get_installed_modules',
     'module_is_installed',
-    'load_access_rules_from_model_name'
+    'load_access_rules_from_model_name',
+    'delete_record'
 ]
 
+def delete_record(cursor, module_name, record_names):
+    import pooler
+    uid = 1
+    pool = pooler.get_pool(cursor.dbname)
+    for record_name in record_names:
+        # Find by model = ir.ui.view, module = module & name = the view_id
+        logger.info(" {}: Deleting record: {}".format(module_name, record_name))
+        sql_model = """
+            SELECT id, model, res_id
+            FROM ir_model_data
+            AND module = %(module_name)s
+            AND name = %(record_name)s
+        """
+        params_model = {
+            'module_name': module_name,
+            'record_name': record_name
+        }
+        cursor.execute(sql_model, params_model)
+        model_data_vs = cursor.dictfetchall()
+        # It should have only one.
+        if model_data_vs and len(model_data_vs) == 1:
+            # Delete from model data.
+            sql_model_del = """
+                DELETE FROM ir_model_data WHERE id = %(model_data_id)s
+            """
+            params_model_del = {
+                'model_data_id': model_data_vs['id']
+            }
+            cursor.execute(sql_model_del, params_model_del)
+
+            model_o = pool.get(model_data_vs['model'])
+            model_o.unlink(cursor, uid, model_data_vs['res_id'])
 
 def load_data(cr, module_name, filename, idref=None, mode='init'):
     """
