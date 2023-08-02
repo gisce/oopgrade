@@ -37,8 +37,8 @@ def delete_record(cursor, module_name, record_names):
         logger.info(" {}: Deleting record: {}".format(module_name, record_name))
         sql_model = """
             SELECT id, model, res_id
-            FROM ir_model_data
-            AND module = %(module_name)s
+            FROM ir_model_data WHERE
+            module = %(module_name)s
             AND name = %(record_name)s
         """
         params_model = {
@@ -49,6 +49,7 @@ def delete_record(cursor, module_name, record_names):
         model_data_vs = cursor.dictfetchall()
         # It should have only one.
         if model_data_vs and len(model_data_vs) == 1:
+            model_data_vs = model_data_vs[0]
             # Delete from model data.
             sql_model_del = """
                 DELETE FROM ir_model_data WHERE id = %(model_data_id)s
