@@ -1,9 +1,12 @@
 # coding=utf-8
 from __future__ import absolute_import
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
 import click
 from tqdm import tqdm
 import psycopg2
-import ConfigParser
+import configparser
 from osconf import config_from_environment
 
 
@@ -24,7 +27,7 @@ class JSONParamType(click.ParamType):
 def oopgrade(ctx, config):
     ctx.obj = {}
     if config:
-        conf = ConfigParser.ConfigParser()
+        conf = configparser.ConfigParser()
         conf.read(config)
         ctx.obj = dict(conf.items('options'))
     envconf = config_from_environment('OPENERP')

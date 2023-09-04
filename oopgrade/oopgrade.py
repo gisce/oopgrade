@@ -416,7 +416,7 @@ def set_defaults(cr, pool, default_spec, force=False):
 
     def write_value(ids, field, value):
         logger.info("model %s, field %s: setting default value of %d resources to %s",
-                    model, field, len(ids), unicode(value))
+                    model, field, len(ids), str(value))
         obj.write(cr, 1, ids, {field: value})
 
     for model in list(default_spec.keys()):

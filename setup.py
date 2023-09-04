@@ -31,6 +31,7 @@ setup(
         'osconf',
         'itsdangerous<2',
         'redis<3.6',
+        'future',
     ],
     license='AGPL-3',
     entry_points='''
