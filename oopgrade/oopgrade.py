@@ -643,7 +643,7 @@ def get_foreign_keys(cursor, table):
 
 
 def get_installed_modules(cursor):
-    cursor.execute("SELECT" " name " "FROM " "  ir_module_module " "WHERE state = 'installed'")
+    cursor.execute("SELECT name FROM ir_module_module WHERE state = 'installed'")
     return [x[0] for x in cursor.fetchall()]
 
 
