@@ -25,6 +25,7 @@ __all__ = [
     'get_installed_modules',
     'module_is_installed',
     'load_access_rules_from_model_name'
+    'delete_registers'
 ]
 
 
@@ -102,6 +103,7 @@ def load_data_records(cr, module_name, filename, record_ids, mode='update'):
 def load_access_rules_from_model_name(cr, module_name, model_ids, filename='security/ir.model.access.csv', mode='init'):
     # Example: load_access_rules_from_model_name(cursor, 'base', ['model_ir_auto_vacuum'], mode='init')
     import tools
+
     if not isinstance(model_ids, (tuple, list)):
         model_ids = [model_ids]
 
@@ -167,7 +169,7 @@ def rename_models(cr, model_spec):
     """
     Rename models. Typically called in the pre script.
     :param column_spec: a list of tuples (old table name, new table name).
-    
+
     Use case: if a model changes name, but still implements equivalent
     functionality you will want to update references in for instance
     relation fields.
@@ -284,7 +286,7 @@ def set_stored_function(cr, obj, fields):
 
 
 def delete_model_workflow(cr, model):
-    """ 
+    """
     Forcefully remove active workflows for obsolete models,
     to prevent foreign key issues when the orm deletes the model.
     """
@@ -377,7 +379,7 @@ def clean_old_wizard(cr, old_wizard_name, module):
                 cr.execute(sql_del, params_del)
 
 
-def clean_deleted_views(cursor, module_name, view_ids):
+def delete_registers(cursor, module_name, view_ids):
     """
     Clean the <ir.ui.view> and <ir.model.data> registers associated to the
     views passed as parameter that were deleted from the specified module.
@@ -392,58 +394,52 @@ def clean_deleted_views(cursor, module_name, view_ids):
     :type view_ids: list[str]
     """
     import pooler
+
     uid = 1
 
     if not view_ids:
         raise Exception('You have to specify a list of view names')
+        raise Exception("You have to specify a list of view names")
     if not module_name:
-        raise Exception(
-            'You have to specify a module where the record views are'
-        )
+        raise Exception("You have to specify a module where the record views are")
     if not isinstance(view_ids, (list)):
         view_ids = [view_ids]
 
-    mod_data_obj = pooler.get_pool(cursor.dbname).get('ir.model.data')
+    mod_data_obj = pooler.get_pool(cursor.dbname).get("ir.model.data")
     for view_id in view_ids:
         # Find by model = ir.ui.view, module = module & name = the view_id
         logger.info(" {}: Deleting view: {}".format(module_name, view_id))
         sql_model = """
-                        SELECT id
+                        SELECT id, model
                         FROM ir_model_data
-                        WHERE model = 'ir.ui.view'
-                        AND module = %(module)s
+                        WHERE module = %(module)s
                         AND name = %(view_id)s
                     """
-        params_model = {
-            'module': module_name,
-            'view_id': view_id
-        }
+        params_model = {"module": module_name, "view_id": view_id}
         cursor.execute(sql_model, params_model)
-        model_id = cursor.fetchone()
-        # Get the id of <ir.ui.view> from <ir.model.data> (res_id)
+        model_data = cursor.fetchall()
+
+        if len(model_data) == 0:
+            # do nothing
+            logger.info("The register {} doesn't exists".format(view_id))
+            break
+
+        if len(model_data) > 1:
+            raise Exception("The register {} is being used in more than one place".format(view_id))
+
+        # Get the id of model_type from <ir.model.data> (res_id)
         ui_view_id = False
+        model_id = model_data[0][0]
+        model_type = model_data[0][1].replace('.', '_')
+
         # It should have only one.
-        if model_id and len(model_id) == 1:
-            ui_view_id = mod_data_obj.read(
-                cursor, uid, model_id[0], ['res_id']
-            )['res_id']
+        if model_data and model_id:
+            ui_view_id = mod_data_obj.read(cursor, uid, model_id, ["res_id"])["res_id"]
             # Delete from model data.
-            sql_model_del = """
-                            DELETE FROM ir_model_data WHERE id = %(model_id)s
-                        """
-            params_model_del = {
-                'model_id': model_id
-            }
-            cursor.execute(sql_model_del, params_model_del)
-        # Use 'ui_view_id' to delete view register in <ir.ui.view>
+            cursor.execute('DELETE FROM ir_model_data WHERE id = {}'.format(model_id))
+        # Use 'ui_view_id' to delete view register in model_type
         if ui_view_id:
-            sql_view_del = """
-                        DELETE FROM ir_ui_view WHERE id = %(view_id)s
-                    """
-            params_view_del = {
-                'view_id': ui_view_id
-            }
-            cursor.execute(sql_view_del, params_view_del)
+            cursor.execute('DELETE FROM {} WHERE id = {}'.format(model_type, ui_view_id))
 
 
 def set_defaults(cr, pool, default_spec, force=False):
