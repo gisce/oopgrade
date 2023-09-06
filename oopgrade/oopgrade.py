@@ -24,7 +24,8 @@ __all__ = [
     "get_foreign_keys",
     "get_installed_modules",
     "module_is_installed",
-    "load_access_rules_from_model_name" "delete_registers",
+    "load_access_rules_from_model_name",
+    "delete_registers",
 ]
 
 
@@ -113,7 +114,6 @@ def load_access_rules_from_model_name(cr, module_name, model_ids, filename="secu
     file_lines = fp.readlines()
     clean_str = lambda _s: _s.replace("\n", "").replace("\t", "").replace("\r", "")
     header = clean_str(file_lines.pop(0))
-    header_len = len(header.split(","))
     header_len = len(header.split(","))
     rules_lines = [header]
     for _f_line in file_lines:
@@ -308,7 +308,6 @@ def delete_model_workflow(cr, model):
         (model,),
     )
     logged_query(cr, "DELETE FROM wkf WHERE osv = %s", (model,))
-    logged_query(cr, "DELETE FROM wkf WHERE osv = %s", (model,))
 
 
 def clean_old_wizard(cr, old_wizard_name, module):
@@ -325,7 +324,6 @@ def clean_old_wizard(cr, old_wizard_name, module):
         WHERE wiz_name = %(old_wiz_name)s
     """
     params_wizard = {"old_wiz_name": old_wizard_name}
-    params_wizard = {"old_wiz_name": old_wizard_name}
     cr.execute(sql_wizard, params_wizard)
     wiz_ids = cr.fetchall()
 
@@ -341,7 +339,6 @@ def clean_old_wizard(cr, old_wizard_name, module):
                 AND res_id in %(wiz_id)s
             """
             params_model = {"module": module, "wiz_id": wiz_id}
-            params_model = {"module": module, "wiz_id": wiz_id}
             cr.execute(sql_model, params_model)
             model_id = cr.fetchone()
 
@@ -351,14 +348,12 @@ def clean_old_wizard(cr, old_wizard_name, module):
                 WHERE value = 'ir.actions.wizard,%(wiz_id)s'
             """
             params_value = {"wiz_id": wiz_id}
-            params_value = {"wiz_id": wiz_id}
             cr.execute(sql_value, params_value)
             value_id = cr.fetchone()
 
             sql_del_wiz = """
                 DELETE FROM ir_act_wizard WHERE id in %(wiz_id)s;
             """
-            params_del_wiz = {"wiz_id": wiz_id}
             params_del_wiz = {"wiz_id": wiz_id}
             cr.execute(sql_del_wiz, params_del_wiz)
 
@@ -368,14 +363,12 @@ def clean_old_wizard(cr, old_wizard_name, module):
                     DELETE FROM ir_model_data WHERE id in %(model_id)s
                 """
                 params_del = {"model_id": model_id}
-                params_del = {"model_id": model_id}
                 cr.execute(sql_del, params_del)
 
             if value_id and len(value_id) == 1:
                 sql_del = """
                     DELETE FROM ir_value WHERE id in %(value_id)s
                 """
-                params_del = {"value_id": value_id}
                 params_del = {"value_id": value_id}
                 cr.execute(sql_del, params_del)
 
