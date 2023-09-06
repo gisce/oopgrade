@@ -2,34 +2,33 @@
 import os
 import logging
 
-logger = logging.getLogger('openerp.oopgrade')
+logger = logging.getLogger("openerp.oopgrade")
 
-MODULE_INSTALLED_STATES = ['installed', 'to upgrade', 'to remove']
+MODULE_INSTALLED_STATES = ["installed", "to upgrade", "to remove"]
 
 __all__ = [
-    'load_data',
-    'load_data_records',
-    'rename_columns',
-    'rename_tables',
-    'drop_columns',
-    'table_exists',
-    'column_exists',
-    'change_column_type',
-    'delete_model_workflow',
-    'set_defaults',
-    'set_stored_function',
-    'update_module_names',
-    'add_ir_model_fields',
-    'install_modules',
-    'get_foreign_keys',
-    'get_installed_modules',
-    'module_is_installed',
-    'load_access_rules_from_model_name'
-    'delete_registers'
+    "load_data",
+    "load_data_records",
+    "rename_columns",
+    "rename_tables",
+    "drop_columns",
+    "table_exists",
+    "column_exists",
+    "change_column_type",
+    "delete_model_workflow",
+    "set_defaults",
+    "set_stored_function",
+    "update_module_names",
+    "add_ir_model_fields",
+    "install_modules",
+    "get_foreign_keys",
+    "get_installed_modules",
+    "module_is_installed",
+    "load_access_rules_from_model_name" "delete_registers",
 ]
 
 
-def load_data(cr, module_name, filename, idref=None, mode='init'):
+def load_data(cr, module_name, filename, idref=None, mode="init"):
     """
     Load an xml or csv data file from your post script. The usual case for this is the
     occurrence of newly added essential or useful data in the module that is
@@ -59,12 +58,12 @@ def load_data(cr, module_name, filename, idref=None, mode='init'):
 
     if idref is None:
         idref = {}
-    logger.info('%s: loading %s' % (module_name, filename))
+    logger.info("%s: loading %s" % (module_name, filename))
     _, ext = os.path.splitext(filename)
     pathname = os.path.join(module_name, filename)
     fp = tools.file_open(pathname)
     try:
-        if ext == '.csv':
+        if ext == ".csv":
             noupdate = True
             tools.convert_csv_import(cr, module_name, pathname, fp.read(), idref, mode, noupdate)
         else:
@@ -73,7 +72,7 @@ def load_data(cr, module_name, filename, idref=None, mode='init'):
         fp.close()
 
 
-def load_data_records(cr, module_name, filename, record_ids, mode='update'):
+def load_data_records(cr, module_name, filename, record_ids, mode="update"):
     """
     :param module_name: the name of the module
     :param filename: the path to the filename, relative to the module \
@@ -85,14 +84,14 @@ def load_data_records(cr, module_name, filename, record_ids, mode='update'):
     from lxml import etree
     from tools import config, xml_import
 
-    xml_path = '{}/{}/{}'.format(config['addons_path'], module_name, filename)
+    xml_path = "{}/{}/{}".format(config["addons_path"], module_name, filename)
     if not os.path.exists(xml_path):
-        raise Exception('Data {} not found'.format(xml_path))
+        raise Exception("Data {} not found".format(xml_path))
     if not record_ids:
         raise Exception("Maybe you want to run 'load_data' because you don't pass any record id")
     xml_to_import = xml_import(cr, module_name, {}, mode, noupdate=False)
     doc = etree.parse(xml_path)
-    logger.info('{}: loading file {}'.format(module_name, filename))
+    logger.info("{}: loading file {}".format(module_name, filename))
     for record_id in record_ids:
         logger.info("{}: Loading record id: {}".format(module_name, record_id))
         rec = doc.findall("//*[@id='{}']".format(record_id))[0]
@@ -100,41 +99,40 @@ def load_data_records(cr, module_name, filename, record_ids, mode='update'):
         xml_to_import._tags[rec.tag](cr, rec, data)
 
 
-def load_access_rules_from_model_name(cr, module_name, model_ids, filename='security/ir.model.access.csv', mode='init'):
+def load_access_rules_from_model_name(cr, module_name, model_ids, filename="security/ir.model.access.csv", mode="init"):
     # Example: load_access_rules_from_model_name(cursor, 'base', ['model_ir_auto_vacuum'], mode='init')
     import tools
 
     if not isinstance(model_ids, (tuple, list)):
         model_ids = [model_ids]
 
-    logger.info('%s: loading %s %s' % (module_name, filename, model_ids))
+    logger.info("%s: loading %s %s" % (module_name, filename, model_ids))
     _, ext = os.path.splitext(filename)
     pathname = os.path.join(module_name, filename)
     fp = tools.file_open(pathname)
     file_lines = fp.readlines()
-    clean_str = lambda _s: _s.replace('\n', '').replace('\t', '').replace('\r', '')
+    clean_str = lambda _s: _s.replace("\n", "").replace("\t", "").replace("\r", "")
     header = clean_str(file_lines.pop(0))
-    header_len = len(header.split(','))
+    header_len = len(header.split(","))
+    header_len = len(header.split(","))
     rules_lines = [header]
     for _f_line in file_lines:
         clean_line = clean_str(_f_line)
-        split_line = clean_line.split(',')
+        split_line = clean_line.split(",")
         if len(split_line) == header_len and split_line[2].replace('"', "") in model_ids:
             rules_lines.append(clean_line)
-    data_lines = '\n'.join(rules_lines)
+    data_lines = "\n".join(rules_lines)
     fp.close()
     # check
     for _model in model_ids:
         if '"{}"'.format(_model) not in data_lines:
-            raise Exception('{} not found in {}'.format(_model, pathname))
+            raise Exception("{} not found in {}".format(_model, pathname))
     tools.convert_csv_import(cr, module_name, filename, data_lines, mode=mode)
 
 
 def table_exists(cr, table):
-    """ Check whether a certain table or view exists """
-    cr.execute(
-        'SELECT count(relname) FROM pg_class WHERE relname = %s',
-        (table,))
+    """Check whether a certain table or view exists"""
+    cr.execute("SELECT count(relname) FROM pg_class WHERE relname = %s", (table,))
     return cr.fetchone()[0] == 1
 
 
@@ -147,10 +145,16 @@ def rename_columns(cr, column_spec):
 
     """
     for table in column_spec.keys():
-        for (old, new) in column_spec[table]:
-            logger.info("table %s, column %s: renaming to %s",
-                        table, old, new)
-            cr.execute('ALTER TABLE "%s" RENAME "%s" TO "%s"' % (table, old, new,))
+        for old, new in column_spec[table]:
+            logger.info("table %s, column %s: renaming to %s", table, old, new)
+            cr.execute(
+                'ALTER TABLE "%s" RENAME "%s" TO "%s"'
+                % (
+                    table,
+                    old,
+                    new,
+                )
+            )
 
 
 def rename_tables(cr, table_spec):
@@ -159,10 +163,15 @@ def rename_tables(cr, table_spec):
     :param column_spec: a list of tuples (old table name, new table name).
 
     """
-    for (old, new) in table_spec:
-        logger.info("table %s: renaming to %s",
-                    old, new)
-        cr.execute('ALTER TABLE "%s" RENAME TO "%s"' % (old, new,))
+    for old, new in table_spec:
+        logger.info("table %s: renaming to %s", old, new)
+        cr.execute(
+            'ALTER TABLE "%s" RENAME TO "%s"'
+            % (
+                old,
+                new,
+            )
+        )
 
 
 def rename_models(cr, model_spec):
@@ -175,11 +184,15 @@ def rename_models(cr, model_spec):
     relation fields.
 
     """
-    for (old, new) in model_spec:
-        logger.info("model %s: renaming to %s",
-                    old, new)
-        cr.execute('UPDATE ir_model_fields SET relation = %s '
-                   'WHERE relation = %s', (new, old,))
+    for old, new in model_spec:
+        logger.info("model %s: renaming to %s", old, new)
+        cr.execute(
+            "UPDATE ir_model_fields SET relation = %s WHERE relation = %s",
+            (
+                new,
+                old,
+            ),
+        )
 
 
 def drop_columns(cr, column_spec):
@@ -191,15 +204,12 @@ def drop_columns(cr, column_spec):
 
     :param column_spec: a list of (table, column) tuples
     """
-    for (table, column) in column_spec:
-        logger.info("table %s: drop column %s",
-                    table, column)
+    for table, column in column_spec:
+        logger.info("table %s: drop column %s", table, column)
         if column_exists(cr, table, column):
-            cr.execute('ALTER TABLE "%s" DROP COLUMN "%s"' %
-                       (table, column))
+            cr.execute('ALTER TABLE "%s" DROP COLUMN "%s"' % (table, column))
         else:
-            logger.warn("table %s: column %s did not exist",
-                        table, column)
+            logger.warn("table %s: column %s did not exist", table, column)
 
 
 def add_columns(cr, column_spec):
@@ -211,15 +221,12 @@ def add_columns(cr, column_spec):
         Tuples consist of (column name, type).
     """
     for table in column_spec:
-        for (column, type_) in column_spec[table]:
-            logger.info("table %s: add column %s",
-                        table, column)
+        for column, type_ in column_spec[table]:
+            logger.info("table %s: add column %s", table, column)
             if column_exists(cr, table, column):
-                logger.warn("table %s: column %s already exists",
-                            table, column)
+                logger.warn("table %s: column %s already exists", table, column)
             else:
-                cr.execute('ALTER TABLE "%s" ADD COLUMN "%s" %s' %
-                           (table, column, type_))
+                cr.execute('ALTER TABLE "%s" ADD COLUMN "%s" %s' % (table, column, type_))
 
 
 def add_columns_fk(cr, column_spec):
@@ -231,16 +238,17 @@ def add_columns_fk(cr, column_spec):
         Tuples consist of (column name, type, foreing table name, foreing key column, on delete action).
     """
     for table in column_spec:
-        for (column, type_, fk_table_name, fk_col, on_delete_act) in column_spec[table]:
+        for column, type_, fk_table_name, fk_col, on_delete_act in column_spec[table]:
             add_columns(cr, {table: [(column, type_)]})
-            constraint = table + '_' + column + '_fkey'
+            constraint = table + "_" + column + "_fkey"
             if not on_delete_act:
-                on_delete_act = 'restrict'
-            logger.info("table %s: add constraint %s",
-                        table, constraint)
-            cr.execute('ALTER TABLE "%s" ADD CONSTRAINT "%s" FOREIGN KEY (%s) REFERENCES %s(%s) \
-                        ON DELETE %s' %
-                       (table, constraint, column, fk_table_name, fk_col, on_delete_act))
+                on_delete_act = "restrict"
+            logger.info("table %s: add constraint %s", table, constraint)
+            cr.execute(
+                'ALTER TABLE "%s" ADD CONSTRAINT "%s" FOREIGN KEY (%s) REFERENCES %s(%s) \
+                        ON DELETE %s'
+                % (table, constraint, column, fk_table_name, fk_col, on_delete_act)
+            )
 
 
 def set_stored_function(cr, obj, fields):
@@ -260,9 +268,8 @@ def set_stored_function(cr, obj, fields):
         logger.info("storing computed values of fields.function '%s'" % (k,))
         field = obj._columns[k]
         ss = field._symbol_set
-        update_query = 'UPDATE "%s" SET "%s"=%s WHERE id=%%s' % (
-            obj._table, k, ss[0])
-        cr.execute('select id from ' + obj._table)
+        update_query = 'UPDATE "%s" SET "%s"=%s WHERE id=%%s' % (obj._table, k, ss[0])
+        cr.execute("select id from " + obj._table)
         ids_lst = map(lambda x: x[0], cr.fetchall())
         logger.info("storing computed values for %s objects" % len(ids_lst))
         start = datetime.now()
@@ -270,7 +277,7 @@ def set_stored_function(cr, obj, fields):
         def chunks(l, n):
             """Yield successive n-sized chunks from l."""
             for i in range(0, len(l), n):
-                yield l[i:i + n]
+                yield l[i : i + n]
 
         for ids in chunks(ids_lst, 100):
             res = field.get(cr, obj, ids, k, 1, {})
@@ -297,10 +304,11 @@ def delete_model_workflow(cr, model):
         "  FROM wkf_activity, wkf "
         "  WHERE wkf_id = wkf.id AND "
         "  wkf.osv = %s"
-        ")", (model,))
-    logged_query(
-        cr,
-        "DELETE FROM wkf WHERE osv = %s", (model,))
+        ")",
+        (model,),
+    )
+    logged_query(cr, "DELETE FROM wkf WHERE osv = %s", (model,))
+    logged_query(cr, "DELETE FROM wkf WHERE osv = %s", (model,))
 
 
 def clean_old_wizard(cr, old_wizard_name, module):
@@ -316,9 +324,8 @@ def clean_old_wizard(cr, old_wizard_name, module):
         FROM ir_act_wizard
         WHERE wiz_name = %(old_wiz_name)s
     """
-    params_wizard = {
-        'old_wiz_name': old_wizard_name
-    }
+    params_wizard = {"old_wiz_name": old_wizard_name}
+    params_wizard = {"old_wiz_name": old_wizard_name}
     cr.execute(sql_wizard, params_wizard)
     wiz_ids = cr.fetchall()
 
@@ -333,10 +340,8 @@ def clean_old_wizard(cr, old_wizard_name, module):
                 AND module = %(module)s
                 AND res_id in %(wiz_id)s
             """
-            params_model = {
-                'module': module,
-                'wiz_id': wiz_id
-            }
+            params_model = {"module": module, "wiz_id": wiz_id}
+            params_model = {"module": module, "wiz_id": wiz_id}
             cr.execute(sql_model, params_model)
             model_id = cr.fetchone()
 
@@ -345,18 +350,16 @@ def clean_old_wizard(cr, old_wizard_name, module):
                 FROM ir_values
                 WHERE value = 'ir.actions.wizard,%(wiz_id)s'
             """
-            params_value = {
-                'wiz_id': wiz_id
-            }
+            params_value = {"wiz_id": wiz_id}
+            params_value = {"wiz_id": wiz_id}
             cr.execute(sql_value, params_value)
             value_id = cr.fetchone()
 
             sql_del_wiz = """
                 DELETE FROM ir_act_wizard WHERE id in %(wiz_id)s;
             """
-            params_del_wiz = {
-                'wiz_id': wiz_id
-            }
+            params_del_wiz = {"wiz_id": wiz_id}
+            params_del_wiz = {"wiz_id": wiz_id}
             cr.execute(sql_del_wiz, params_del_wiz)
 
             # un cop trobats els ids, validar que tots només tenen un registre i llavors eliminar-los tots
@@ -364,18 +367,16 @@ def clean_old_wizard(cr, old_wizard_name, module):
                 sql_del = """
                     DELETE FROM ir_model_data WHERE id in %(model_id)s
                 """
-                params_del = {
-                    'model_id': model_id
-                }
+                params_del = {"model_id": model_id}
+                params_del = {"model_id": model_id}
                 cr.execute(sql_del, params_del)
 
             if value_id and len(value_id) == 1:
                 sql_del = """
                     DELETE FROM ir_value WHERE id in %(value_id)s
                 """
-                params_del = {
-                    'value_id': value_id
-                }
+                params_del = {"value_id": value_id}
+                params_del = {"value_id": value_id}
                 cr.execute(sql_del, params_del)
 
 
@@ -398,7 +399,6 @@ def delete_registers(cursor, module_name, view_ids):
     uid = 1
 
     if not view_ids:
-        raise Exception('You have to specify a list of view names')
         raise Exception("You have to specify a list of view names")
     if not module_name:
         raise Exception("You have to specify a module where the record views are")
@@ -430,16 +430,16 @@ def delete_registers(cursor, module_name, view_ids):
         # Get the id of model_type from <ir.model.data> (res_id)
         ui_view_id = False
         model_id = model_data[0][0]
-        model_type = model_data[0][1].replace('.', '_')
+        model_type = model_data[0][1].replace(".", "_")
 
         # It should have only one.
         if model_data and model_id:
             ui_view_id = mod_data_obj.read(cursor, uid, model_id, ["res_id"])["res_id"]
             # Delete from model data.
-            cursor.execute('DELETE FROM ir_model_data WHERE id = {}'.format(model_id))
+            cursor.execute("DELETE FROM ir_model_data WHERE id = {}".format(model_id))
         # Use 'ui_view_id' to delete view register in model_type
         if ui_view_id:
-            cursor.execute('DELETE FROM {} WHERE id = {}'.format(model_type, ui_view_id))
+            cursor.execute("DELETE FROM {} WHERE id = {}".format(model_type, ui_view_id))
 
 
 def set_defaults(cr, pool, default_spec, force=False):
@@ -461,8 +461,9 @@ def set_defaults(cr, pool, default_spec, force=False):
     from osv import osv
 
     def write_value(ids, field, value):
-        logger.info("model %s, field %s: setting default value of %d resources to %s",
-                    model, field, len(ids), unicode(value))
+        logger.info(
+            "model %s, field %s: setting default value of %d resources to %s", model, field, len(ids), unicode(value)
+        )
         obj.write(cr, 1, ids, {field: value})
 
     for model in default_spec.keys():
@@ -471,7 +472,7 @@ def set_defaults(cr, pool, default_spec, force=False):
             raise osv.except_osv("Migration: error setting default, no such model: %s" % model, "")
 
     for field, value in default_spec[model]:
-        domain = not force and [(field, '=', False)] or []
+        domain = not force and [(field, "=", False)] or []
         ids = obj.search(cr, 1, domain)
         if not ids:
             continue
@@ -488,19 +489,26 @@ def set_defaults(cr, pool, default_spec, force=False):
                     # existence users is covered by foreign keys, so this is not needed
                     # cr.execute("SELECT %s.id, res_users.id FROM %s LEFT OUTER JOIN res_users ON (%s.create_uid = res_users.id) WHERE %s.id IN %s" %
                     #                     (obj._table, obj._table, obj._table, obj._table, tuple(ids),))
-                    cr.execute("SELECT id, COALESCE(create_uid, 1) FROM %s " % obj._table + "WHERE id in %s",
-                               (tuple(ids),))
+                    cr.execute(
+                        "SELECT id, COALESCE(create_uid, 1) FROM %s " % obj._table + "WHERE id in %s", (tuple(ids),)
+                    )
                     fetchdict = dict(cr.fetchall())
                     for id in ids:
                         write_value([id], field, obj._defaults[field](obj, cr, fetchdict.get(id, 1), None))
                         if id not in fetchdict:
                             logger.info(
                                 "model %s, field %s, id %d: no create_uid defined or user does not exist anymore",
-                                model, field, id)
+                                model,
+                                field,
+                                id,
+                            )
+
             else:
-                error = ("OpenUpgrade: error setting default, field %s with "
-                         "None default value not in %s' _defaults" % (
-                             field, model))
+                error = (
+                    "OpenUpgrade: error setting default, field %s with "
+                    "None default value not in %s' _defaults" % (field, model)
+                )
+
                 logger.error(error)
                 # this exeption seems to get lost in a higher up try block
                 osv.except_osv("OpenUpgrade", error)
@@ -512,7 +520,7 @@ def logged_query(cr, query, args=None):
     if args is None:
         args = []
     res = cr.execute(query, args)
-    logger.debug('Running %s', query)
+    logger.debug("Running %s", query)
     if not res:
         query = query % args
         logger.warn('No rows affected for query "%s"', query)
@@ -532,11 +540,12 @@ def column_exists(cr, table, column):
     :rtype: bool
     """
     cr.execute(
-        'SELECT count(attname) FROM pg_attribute '
-        'WHERE attrelid = '
-        '( SELECT oid FROM pg_class WHERE relname = %s ) '
-        'AND attname = %s',
-        (table, column));
+        "SELECT count(attname) FROM pg_attribute "
+        "WHERE attrelid = "
+        "( SELECT oid FROM pg_class WHERE relname = %s ) "
+        "AND attname = %s",
+        (table, column),
+    )
     return cr.fetchone()[0] == 1
 
 
@@ -550,11 +559,7 @@ def change_column_type(cursor, column_spec):
     """
     for table, spec in column_spec.items():
         for column, new_def in spec:
-            logged_query(
-                cursor,
-                'ALTER TABLE %s ALTER COLUMN %s TYPE %s' % (
-                    table, column, new_def)
-            )
+            logged_query(cursor, "ALTER TABLE %s ALTER COLUMN %s TYPE %s" % (table, column, new_def))
     return True
 
 
@@ -564,15 +569,14 @@ def update_module_names(cr, namespec):
     in order to prevent  'certificate not unique' error,
     as well as updating the module reference in the
     XML id.
-    
+
+
     :param namespec: tuple of (old name, new name)
     """
-    for (old_name, new_name) in namespec:
-        query = ("UPDATE ir_module_module SET name = %s "
-                 "WHERE name = %s")
+    for old_name, new_name in namespec:
+        query = "UPDATE ir_module_module SET name = %s " "WHERE name = %s"
         logged_query(cr, query, (new_name, old_name))
-        query = ("UPDATE ir_model_data SET module = %s "
-                 "WHERE module = %s ")
+        query = "UPDATE ir_model_data SET module = %s " "WHERE module = %s "
         logged_query(cr, query, (new_name, old_name))
 
 
@@ -584,12 +588,11 @@ def add_ir_model_fields(cr, columnspec):
     Do not use for fields with additional SQL constraints, such as a
     reference to another table or the cascade constraint, but craft your
     own statement taking them into account.
-    
+
     :param columnspec: tuple of (column name, column type)
     """
     for column in columnspec:
-        query = 'ALTER TABLE ir_model_fields ADD COLUMN %s %s' % (
-            column)
+        query = "ALTER TABLE ir_model_fields ADD COLUMN %s %s" % (column)
         logged_query(cr, query, [])
 
 
@@ -602,9 +605,9 @@ def install_modules(cursor, *modules):
     import pooler
 
     uid = 1
-    mod_obj = pooler.get_pool(cursor.dbname).get('ir.module.module')
+    mod_obj = pooler.get_pool(cursor.dbname).get("ir.module.module")
     mod_obj.update_list(cursor, uid)
-    search_params = [('name', 'in', modules), ('state', '=', 'uninstalled')]
+    search_params = [("name", "in", modules), ("state", "=", "uninstalled")]
     mod_ids = mod_obj.search(cursor, uid, search_params)
     mod_obj.button_install(cursor, uid, mod_ids)
     return True
@@ -636,22 +639,18 @@ def get_foreign_keys(cursor, table):
         " JOIN information_schema.constraint_column_usage AS ccu"
         "   ON ccu.constraint_name = tc.constraint_name"
         " WHERE constraint_type = 'FOREIGN KEY' AND tc.table_name=%s",
-        (table,)
+        (table,)(
+            table,
+        ),
     )
     res = {}
     for fk in cursor.dictfetchall():
-        res[fk['column_name']] = fk.copy()
+        res[fk["column_name"]] = fk.copy()
     return res
 
 
 def get_installed_modules(cursor):
-    cursor.execute(
-        "SELECT"
-        " name "
-        "FROM "
-        "  ir_module_module "
-        "WHERE state = 'installed'"
-    )
+    cursor.execute("SELECT" " name " "FROM " "  ir_module_module " "WHERE state = 'installed'")
     return [x[0] for x in cursor.fetchall()]
 
 
@@ -664,8 +663,7 @@ def module_is_installed(cursor, module_name):
     import pooler
 
     uid = 1
-    mod_obj = pooler.get_pool(cursor.dbname).get('ir.module.module')
-    search_params = [('name', '=', module_name),
-                     ('state', 'in', MODULE_INSTALLED_STATES)]
+    mod_obj = pooler.get_pool(cursor.dbname).get("ir.module.module")
+    search_params = [("name", "=", module_name), ("state", "in", MODULE_INSTALLED_STATES)]
     mod_ids = mod_obj.search(cursor, uid, search_params)
     return len(mod_ids) > 0
