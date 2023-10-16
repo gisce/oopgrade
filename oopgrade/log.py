@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from oopgrade import table_exists
+from __future__ import absolute_import
+from .oopgrade import table_exists
 
 
 def log_xml_id(cr, module, xml_id):

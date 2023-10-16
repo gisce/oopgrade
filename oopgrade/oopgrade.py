@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+import six
+if six.PY3:
+    from builtins import str
+    from builtins import range
 import os
 import logging
 
@@ -143,7 +147,7 @@ def rename_columns(cr, column_spec):
     Tuples consist of (old_name, new_name).
 
     """
-    for table in column_spec.keys():
+    for table in list(column_spec.keys()):
         for (old, new) in column_spec[table]:
             logger.info("table %s, column %s: renaming to %s",
                         table, old, new)
@@ -277,7 +281,7 @@ def set_stored_function(cr, obj, fields):
         update_query = 'UPDATE "%s" SET "%s"=%s WHERE id=%%s' % (
             obj._table, k, ss[0])
         cr.execute('select id from ' + obj._table)
-        ids_lst = map(lambda x: x[0], cr.fetchall())
+        ids_lst = [x[0] for x in cr.fetchall()]
         logger.info("storing computed values for %s objects" % len(ids_lst))
         start = datetime.now()
 
@@ -288,7 +292,7 @@ def set_stored_function(cr, obj, fields):
 
         for ids in chunks(ids_lst, 100):
             res = field.get(cr, obj, ids, k, 1, {})
-            for key, val in res.items():
+            for key, val in list(res.items()):
                 if field._multi:
                     val = val[k]
                 # if val is a many2one, just write the ID
@@ -412,10 +416,10 @@ def set_defaults(cr, pool, default_spec, force=False):
 
     def write_value(ids, field, value):
         logger.info("model %s, field %s: setting default value of %d resources to %s",
-                    model, field, len(ids), unicode(value))
+                    model, field, len(ids), str(value))
         obj.write(cr, 1, ids, {field: value})
 
-    for model in default_spec.keys():
+    for model in list(default_spec.keys()):
         obj = pool.get(model)
         if not obj:
             raise osv.except_osv("Migration: error setting default, no such model: %s" % model, "")
@@ -498,7 +502,7 @@ def change_column_type(cursor, column_spec):
         posgresql_language
     :return: execute result
     """
-    for table, spec in column_spec.items():
+    for table, spec in list(column_spec.items()):
         for column, new_def in spec:
             logged_query(
                 cursor,

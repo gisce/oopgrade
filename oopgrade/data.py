@@ -1,6 +1,9 @@
 # coding=utf-8
 from __future__ import absolute_import
+import six
 
+if six.PY3:
+    from builtins import object
 from collections import namedtuple
 from ast import literal_eval
 
@@ -107,7 +110,7 @@ class DataMigration(object):
             record = self._record(xml_record)
             self.records.append(record)
             sp = []
-            for field in self.search_params.get(record.model, record.vals.keys()):
+            for field in self.search_params.get(record.model, list(record.vals.keys())):
                 sp.append((field, '=', record.vals[field]))
             logger.info('Trying to find existing record with query: {}'.format(
                 sp
@@ -131,7 +134,7 @@ class DataMigration(object):
                 table_model = Table(record.model.replace('.', '_'))
                 columns = []
                 values = []
-                for col, value in record.vals.items():
+                for col, value in list(record.vals.items()):
                     columns.append(getattr(table_model, col))
                     values.append(value)
 

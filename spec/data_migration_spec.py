@@ -1,7 +1,11 @@
 # coding=utf-8
-from spec.fixtures import get_fixture
+from .fixtures import get_fixture
 from expects import *
-from mock import Mock, call
+import six
+if six.PY2:
+    from mock import Mock, call
+else:
+    from unittest.mock import Mock, call
 
 from oopgrade import DataMigration
 from oopgrade.data import DataRecord
@@ -10,7 +14,7 @@ from oopgrade.oopgrade import add_columns
 
 with description('Migrating _data.xml'):
     with before.all:
-        with open(get_fixture('migration_data.xml'), 'r') as f:
+        with open(get_fixture('migration_data.xml'), 'rb') as f:
             self.xml = f.read()
 
     with it('must parse xml files with records'):

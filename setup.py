@@ -24,12 +24,14 @@ setup(
         'semver',
         'lxml',
         'python-sql',
+        'six'
         'tqdm',
         'click',
         'pip',
         'osconf',
         'itsdangerous<2',
         'redis<3.6',
+        'future',
     ],
     license='AGPL-3',
     entry_points='''
