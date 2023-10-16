@@ -24,7 +24,7 @@ setup(
         'semver',
         'lxml',
         'python-sql',
-        'six'
+        'six',
         'tqdm',
         'click',
         'pip',
