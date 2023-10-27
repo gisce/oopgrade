@@ -3,6 +3,8 @@ import logging
 import os
 import sys
 import subprocess
+import time
+import threading
 
 __all__ = [
     'get_dependencies',
@@ -79,3 +81,25 @@ def install_requirements(module, addons_path, silent=False, done=None):
             pip_install_requirements(req, silent)
         return modules_requirements
     return [module]
+
+
+class ProgressBarContext:
+    def __init__(self, label='Working'):
+        self.stop = False
+        self.label = label
+
+    def __enter__(self):
+        self.thread = threading.Thread(target=self.infinite_progress_bar)
+        self.thread.start()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.stop = True
+        self.thread.join()
+
+    def infinite_progress_bar(self):
+        while not self.stop:
+            for char in "|/-\\":
+                sys.stdout.write("\r{} {}".format(char, self.label))
+                sys.stdout.flush()
+                time.sleep(0.1)

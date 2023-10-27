@@ -44,7 +44,8 @@ def requirements():
 def install(conf):
     import os.path
     from oopgrade.oopgrade import get_installed_modules
-    from oopgrade.utils import install_requirements, pip_install_requirements
+    import tempfile
+    from oopgrade.utils import pip_install_requirements, ProgressBarContext
     conn = psycopg2.connect(
         dbname=conf['db_name'], user=conf['db_user'],
         password=conf['db_password'], host=conf['db_host']
@@ -58,13 +59,18 @@ def install(conf):
         with conn.cursor() as cursor:
             modules = get_installed_modules(cursor)
     conn.close()
-    done = []
-    for module in tqdm(modules, desc='Installing'):
-        if module in done:
-            continue
-        done += install_requirements(
-            module, conf['addons_path'], silent=True, done=done
-        )
+    total_requirements = ''
+    for module in tqdm(modules, desc='Merging requirements'):
+        req_path = os.path.join(conf['addons_path'], module, 'requirements.txt')
+        if os.path.exists(req_path):
+            with open(req_path) as f:
+                total_requirements += f.read()
+    if total_requirements:
+        with tempfile.NamedTemporaryFile(mode='w', delete=True) as f:
+            f.write(total_requirements)
+            f.flush()
+            with ProgressBarContext(label='Installing...'):
+                pip_install_requirements(f.name, silent=True)
 
 
 @oopgrade.command()
