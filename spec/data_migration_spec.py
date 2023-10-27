@@ -97,7 +97,7 @@ with description('Migrating _data.xml'):
             with it('must raise a KeyError exception'):
 
                 def callback():
-                    xml = """<?xml version="1.0" encoding="UTF-8" ?>
+                    xml = b"""<?xml version="1.0" encoding="UTF-8" ?>
 <openerp>
     <data>
         <record id="record_id_0001" model="test.search.model">
