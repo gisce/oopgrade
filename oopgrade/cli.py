@@ -75,9 +75,13 @@ def install(conf):
 @click.option('--channel')
 @click.argument('method')
 @click.option('--kwargs', type=JSONParamType())
-@click.option('--extra-data', type=JSONParamType())
+@click.option('--n-retries', default=0, type=click.INT, help='Will retry method n times')
+@click.option(
+    '--on-max-retries-method', type=click.STRING, help='If fails n times tou can provide alternative method'
+)
+@click.option('--on-max-retries-kwargs', type=JSONParamType(), help='Arguments for alternative method')
 @click.pass_obj
-def pubsub(ctx, channel, method, kwargs, extra_data):
+def pubsub(ctx, channel, method, kwargs, n_retries, on_max_retries_method, on_max_retries_kwargs):
     import json
     from oopgrade.pubsub import send_msg
     secret = ctx.get('secret')
@@ -92,11 +96,11 @@ def pubsub(ctx, channel, method, kwargs, extra_data):
     channel = '{}.{}'.format(db_name, channel)
     msg = {
         'method': method,
-        'kwargs': kwargs or {}
+        'kwargs': kwargs or {},
+        'n_retries': n_retries or 0,
+        'on_max_retries_method': on_max_retries_method or False,
+        'on_max_retries_kwargs': on_max_retries_kwargs or {},
     }
-    if extra_data:
-        msg.update(extra_data)
-
     msg = json.dumps(msg)
     sent_to = send_msg(redis_url, secret, channel, msg)
     print('-> Message sent to {} nodes'.format(sent_to))
