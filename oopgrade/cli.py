@@ -75,8 +75,9 @@ def install(conf):
 @click.option('--channel')
 @click.argument('method')
 @click.option('--kwargs', type=JSONParamType())
+@click.option('--extra-data', type=JSONParamType())
 @click.pass_obj
-def pubsub(ctx, channel, method, kwargs):
+def pubsub(ctx, channel, method, kwargs, extra_data):
     import json
     from oopgrade.pubsub import send_msg
     secret = ctx.get('secret')
@@ -89,9 +90,13 @@ def pubsub(ctx, channel, method, kwargs):
     if not db_name:
         raise ValueError('Databse (key: db_name) not found in config')
     channel = '{}.{}'.format(db_name, channel)
-    msg = json.dumps({
+    msg = {
         'method': method,
         'kwargs': kwargs or {}
-    })
+    }
+    if extra_data:
+        msg.update(extra_data)
+
+    msg = json.dumps(msg)
     sent_to = send_msg(redis_url, secret, channel, msg)
     print('-> Message sent to {} nodes'.format(sent_to))
