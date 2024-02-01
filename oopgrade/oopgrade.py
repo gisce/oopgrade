@@ -397,7 +397,7 @@ def clean_old_wizard(cr, old_wizard_name, module):
             model_id = cr.fetchone()
 
             sql_value = """
-                SELECT id
+                SELECT id, model, res_id
                 FROM ir_values
                 WHERE value = 'ir.actions.wizard,' || %(wiz_id)s
             """
@@ -405,8 +405,7 @@ def clean_old_wizard(cr, old_wizard_name, module):
                 'wiz_id': wiz_id
             }
             cr.execute(sql_value, params_value)
-            value_id = cr.fetchone()
-
+            values_datas = cr.dictfetchall()
             sql_del_wiz = """
                 DELETE FROM ir_act_wizard WHERE id in %(wiz_id)s;
             """
@@ -425,14 +424,27 @@ def clean_old_wizard(cr, old_wizard_name, module):
                 }
                 cr.execute(sql_del, params_del)
 
-            if value_id and len(value_id) == 1:
+            for value_data in values_datas:
                 sql_del = """
-                    DELETE FROM ir_values WHERE id in %(value_id)s
+                    DELETE FROM ir_values WHERE id = %(value_id)s
                 """
                 params_del = {
-                    'value_id': value_id
+                    'value_id': value_data['id']
                 }
                 cr.execute(sql_del, params_del)
+                # the associated menus of the old wizard are also deleted if any
+                if value_data['model'] == 'ir.ui.menu':
+                    sql_del_menu = """
+                    DELETE
+                    FROM ir_ui_menu
+                    WHERE id = %(menu_id)s;
+                    DELETE
+                    FROM ir_model_data
+                    WHERE res_id = %(menu_id)s
+                      AND model = 'ir.ui.menu';
+                    """
+                    cr.execute(sql_del_menu, {'menu_id': value_data['res_id']})
+
 
 def set_defaults(cr, pool, default_spec, force=False):
     """
