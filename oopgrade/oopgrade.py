@@ -399,7 +399,7 @@ def clean_old_wizard(cr, old_wizard_name, module):
             sql_value = """
                 SELECT id
                 FROM ir_values
-                WHERE value = 'ir.actions.wizard,%(wiz_id)s'
+                WHERE value = 'ir.actions.wizard,' || %(wiz_id)s
             """
             params_value = {
                 'wiz_id': wiz_id
@@ -427,7 +427,7 @@ def clean_old_wizard(cr, old_wizard_name, module):
 
             if value_id and len(value_id) == 1:
                 sql_del = """
-                    DELETE FROM ir_value WHERE id in %(value_id)s
+                    DELETE FROM ir_values WHERE id in %(value_id)s
                 """
                 params_del = {
                     'value_id': value_id
