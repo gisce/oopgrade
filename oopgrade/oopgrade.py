@@ -606,11 +606,22 @@ def install_modules(cursor, *modules):
     import pooler
 
     uid = 1
-    mod_obj = pooler.get_pool(cursor.dbname).get('ir.module.module')
+    pool = pooler.get_pool(cursor.dbname)
+    mod_obj = pool.get('ir.module.module')
     mod_obj.update_list(cursor, uid)
     search_params = [('name', 'in', modules), ('state', '=', 'uninstalled')]
     mod_ids = mod_obj.search(cursor, uid, search_params)
-    mod_obj.button_install(cursor, uid, mod_ids)
+    if mod_ids:
+        logger.info('Marking module {} as to be installed'.format(modules))
+        mod_obj.button_install(cursor, uid, mod_ids)
+        logger.info('Executing wizard to install modules')
+        install_wizard_obj = pool.get('module.upgrade')
+        _wiz_id = install_wizard_obj.create(cursor, uid, {})
+        install_wizard_obj.upgrade_module(cursor, uid, [_wiz_id], {})
+        result = install_wizard_obj.read(cursor, uid, [_wiz_id], ['message'], {})[0]['message']
+        logger.info(result)
+    else:
+        logger.warning('{} modules already installed or can not be found'.format(modules))
     return True
 
 
