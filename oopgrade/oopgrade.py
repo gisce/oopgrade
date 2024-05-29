@@ -64,12 +64,12 @@ def delete_record(cursor, module_name, record_names):
             cursor.execute(sql_model_del, params_model_del)
 
             if not isinstance(model_data_vs['res_id'], (list, tuple))
-                model_data_id = [model_data_vs['res_id']]
+                model_data_ids = [model_data_vs['res_id']]
             else:
-                model_data_id = model_data_vs['res_id']
+                model_data_ids = model_data_vs['res_id']
 
             model_o = pool.get(model_data_vs['model'])
-            model_o.unlink(cursor, uid, model_data_id)
+            model_o.unlink(cursor, uid, model_data_ids)
         elif model_data_vs and len(model_data_vs) > 1:
             raise Exception(
                 "More than one record found for model %s" % (model_data_vs['model'])
