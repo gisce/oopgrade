@@ -32,6 +32,7 @@ __all__ = [
     'delete_record'
 ]
 
+
 def delete_record(cursor, module_name, record_names):
     import pooler
     uid = 1
@@ -69,6 +70,7 @@ def delete_record(cursor, module_name, record_names):
             raise Exception(
                 "More than one record found for model %s" % (model_data_vs['model'])
             )
+
 
 def load_data(cr, module_name, filename, idref=None, mode='init'):
     """
@@ -357,6 +359,75 @@ def delete_model_workflow(cr, model):
     logged_query(
         cr,
         "DELETE FROM wkf WHERE osv = %s", (model,))
+
+
+def remove_wizard(cursor, wizard_models):
+    """
+    Removes a list of wizards (Type osv.osv_memory) and all of its remaining
+    elements like menu, values, actions, views, etc.
+
+    :param cursor: Database cursor
+    :param wizard_models: list of wizard model names
+           I.E. ['wizard.do.something', 'wizard.do.other.stuff']
+    """
+    import pooler
+
+    pool = pooler.get_pool(cursor.dbname)
+    for model in wizard_models:
+        model_id = pool.get('ir.model').search(cursor, 1, [('model', '=', model)])
+
+        if len(model_id):
+            model_id = model_id[0]
+        else:
+            raise Exception("Migration: error wizard model {} not found. "
+                            "It can't be removed.".format(model))
+
+        # Menus
+        act_list = tuple()
+        cursor.execute(
+            "SELECT id FROM ir_act_window WHERE res_model = '{}'".format(model)
+        )
+        action_records = cursor.fetchall()
+        for act_record in action_records:
+            act_list += (
+                'ir.actions.act_window,{}'.format(act_record[0]),
+                'ir.actions.act_window, {}'.format(act_record[0]),
+            )
+        cursor.execute(
+            "DELETE from ir_ui_menu WHERE id in ("
+            "select res_id from ir_values where model = 'ir.ui.menu' and value in {})".format(str(act_list)))
+
+        # Values
+        cursor.execute(
+            "DELETE FROM ir_values WHERE value in {}".format(str(act_list))
+        )
+
+        # Actions
+        cursor.execute(
+            "DELETE from ir_model_data where model = 'ir.actions.act_window' and res_id in "
+            "(select id from ir_act_window where res_model = '{}')".format(model))
+        cursor.execute("DELETE from ir_act_window where res_model = '{}'".format(model))
+
+        # Views
+        cursor.execute(
+            "DELETE from ir_model_data where model = 'ir.ui.view' and res_id in "
+            "(select id from ir_ui_view where model = '{}')".format(model))
+        cursor.execute("DELETE from ir_ui_view where model = '{}'".format(model))
+
+        # Access rules
+        cursor.execute(
+            "DELETE from ir_model_data where model = 'ir.model.access' and res_id in "
+            "(select id from ir_model_access where model_id = '{}')".format(model_id))
+        cursor.execute("DELETE from ir_model_access where model_id = {}".format(model_id))
+
+        # Model
+        cursor.execute("DELETE from ir_model_data where model = 'ir.model' and res_id = {}".format(model_id))
+        cursor.execute("DELETE from ir_model where id = {}".format(model_id))
+
+        # Fields
+        cursor.execute(
+            "DELETE from ir_model_data where model = 'ir.model.fields' and res_id in "
+            "(select id from ir_model_fields where model_id = '{}')".format(model_id))
 
 
 def clean_old_wizard(cr, old_wizard_name, module):
