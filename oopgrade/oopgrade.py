@@ -607,11 +607,24 @@ def column_exists(cr, table, column):
     :rtype: bool
     """
     cr.execute(
-        'SELECT count(attname) FROM pg_attribute '
-        'WHERE attrelid = '
-        '( SELECT oid FROM pg_class WHERE relname = %s ) '
-        'AND attname = %s',
-        (table, column));
+        """
+        SELECT count(attname) 
+        FROM pg_attribute 
+        WHERE attrelid = (
+            SELECT oid 
+            FROM pg_class 
+            WHERE relname = %s 
+                AND relnamespace = (
+                    SELECT oid 
+                    FROM pg_namespace 
+                    WHERE nspname = 'public'
+                 ) 
+                 AND relkind = 'r'
+          ) 
+          AND attname = %s
+          """,
+        (table, column)
+    )
     return cr.fetchone()[0] == 1
 
 
