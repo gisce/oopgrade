@@ -187,10 +187,11 @@ with description('Migrating _data.xml'):
             add_columns(cursor, columns, multiple=True)
             expected_sql = [
                 call(
-                    'SELECT count(attname) FROM pg_attribute WHERE attrelid = (SELECT oid FROM pg_class WHERE relname = %s AND relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = "public") AND relkind = "r") AND attname = %s',
-                    ('test_model', 'random1')),
+                    "SELECT count(attname) FROM pg_attribute WHERE attrelid = (SELECT oid FROM pg_class WHERE relname = %s AND relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public') AND relkind = 'r') AND attname = %s",
+                    ('test_model', 'random1')
+                ),
                 call(
-                    'SELECT count(attname) FROM pg_attribute WHERE attrelid = (SELECT oid FROM pg_class WHERE relname = %s AND relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = "public") AND relkind = "r") AND attname = %s',
+                    "SELECT count(attname) FROM pg_attribute WHERE attrelid = (SELECT oid FROM pg_class WHERE relname = %s AND relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public') AND relkind = 'r') AND attname = %s",
                     ('test_model', 'random2')),
                 call(
                     'ALTER TABLE "test_model" ADD COLUMN "random1" character varying(16),\nADD COLUMN "random2" character varying(16)'),
