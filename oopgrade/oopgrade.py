@@ -55,14 +55,15 @@ def delete_record(cursor, module_name, record_names):
         # It should have only one.
         if model_data_vs and len(model_data_vs) == 1:
             model_data_vs = model_data_vs[0]
-            # Delete all shortcuts that use this view
-            sql_sc_del = """
-                DELETE FROM ir_ui_view_sc WHERE view_id in %(sc_view_id)s
-            """
-            params_sc_del = {
-                'sc_view_id': model_data_vs['res_id']
-            }
-            cursor.execute(sql_sc_del, params_sc_del)
+            if model_data_vs['model'] == 'ir.ui.view':
+                # Delete all shortcuts that use this view
+                sql_sc_del = """
+                    DELETE FROM ir_ui_view_sc WHERE view_id in %(sc_view_id)s
+                """
+                params_sc_del = {
+                    'sc_view_id': model_data_vs['res_id']
+                }
+                cursor.execute(sql_sc_del, params_sc_del)
             # Delete from model data.
             sql_model_del = """
                 DELETE FROM ir_model_data WHERE id = %(model_data_id)s
