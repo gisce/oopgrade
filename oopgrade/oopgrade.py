@@ -58,7 +58,7 @@ def delete_record(cursor, module_name, record_names):
             if model_data_vs['model'] == 'ir.ui.view':
                 # Delete all shortcuts that use this view
                 sql_sc_del = """
-                    DELETE FROM ir_ui_view_sc WHERE view_id in %(sc_view_id)s
+                    DELETE FROM ir_ui_view_sc WHERE view_id = %(sc_view_id)s
                 """
                 params_sc_del = {
                     'sc_view_id': model_data_vs['res_id']
