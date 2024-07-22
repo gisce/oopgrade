@@ -155,24 +155,25 @@ with description('Migrating _data.xml'):
             dm.migrate()
             expected_sql = [
                 call('SELECT "a"."id" AS "id" FROM "test_model" AS "a" WHERE (("a"."name" = %s) AND ("a"."description" = %s))', ('name', 'this is a description')),
-                call('INSERT INTO "test_model" AS "a" ("name", "description") VALUES (%s, %s) RETURNING "a"."id"', ('name', 'this is a description')),
-                call('INSERT INTO "ir_model_data" AS "a" ("name", "model", "noupdate", "res_id", "module") VALUES (%s, %s, %s, %s, %s)', ('record_id_0001', 'test.model', False, 1, 'module')),
+                call('INSERT INTO "test_model" ("name", "description") VALUES (%s, %s) RETURNING "test_model"."id"', ('name', 'this is a description')),
+                call('INSERT INTO "ir_model_data" ("name", "model", "noupdate", "res_id", "module") VALUES (%s, %s, %s, %s, %s)', ('record_id_0001', 'test.model', False, 1, 'module')),
                 call('SELECT "a"."res_id" FROM "ir_model_data" AS "a" WHERE (("a"."module" = %s) AND ("a"."name" = %s))', ('other_module', 'xml_id')),
                 call('SELECT "a"."id" AS "id" FROM "res_partner" AS "a" WHERE (("a"."ref" = %s))', ('123',)),
                 call('SELECT "a"."id" AS "id" FROM "test_search_model" AS "a" WHERE (("a"."code" = %s))', ('code',)),
-                call('INSERT INTO "ir_model_data" AS "a" ("name", "model", "noupdate", "res_id", "module") VALUES (%s, %s, %s, %s, %s)', ('record_id_0003', 'test.search.model', False, 3, 'module')),
+                call('INSERT INTO "ir_model_data" ("name", "model", "noupdate", "res_id", "module") VALUES (%s, %s, %s, %s, %s)', ('record_id_0003', 'test.search.model', False, 3, 'module')),
                 call('SELECT "a"."id" AS "id" FROM "test_model" AS "a" WHERE (("a"."name" = %s) AND ("a"."description" = %s))', ('name 2', 'this is a description 2')),
-                call('INSERT INTO "ir_model_data" AS "a" ("name", "model", "noupdate", "res_id", "module") VALUES (%s, %s, %s, %s, %s)', ('record_id_0002', 'test.model', True, 2, 'module')),
+                call('INSERT INTO "ir_model_data" ("name", "model", "noupdate", "res_id", "module") VALUES (%s, %s, %s, %s, %s)', ('record_id_0002', 'test.model', True, 2, 'module')),
                 call('SELECT "a"."res_id" FROM "ir_model_data" AS "a" WHERE (("a"."module" = %s) AND ("a"."name" = %s))', ('module', 'record_id_0002')),
                 call('SELECT "a"."id" AS "id" FROM "test_other_model" AS "a" WHERE (("a"."code" = %s) AND ("a"."test_model_id" = %s))', ('1', 2)),
-                call('INSERT INTO "test_other_model" AS "a" ("code", "test_model_id") VALUES (%s, %s) RETURNING "a"."id"', ('1', 2)),
-                call('INSERT INTO "ir_model_data" AS "a" ("name", "model", "noupdate", "res_id", "module") VALUES (%s, %s, %s, %s, %s)', ('record_id_0004', 'test.other.model', False, 4, 'module'))
+                call('INSERT INTO "test_other_model" ("code", "test_model_id") VALUES (%s, %s) RETURNING "test_other_model"."id"', ('1', 2)),
+                call('INSERT INTO "ir_model_data" ("name", "model", "noupdate", "res_id", "module") VALUES (%s, %s, %s, %s, %s)', ('record_id_0004', 'test.other.model', False, 4, 'module'))
             ]
+
             expect(cursor.execute.call_args_list).to(contain_exactly(
                 *expected_sql
             ))
     with description('Adding columns'):
-        with it('usign multiple at once'):
+        with it('using multiple at once'):
             cursor = Mock()
             cursor.fetchone.side_effect = [
                 [0],  # No record for random1
@@ -187,18 +188,17 @@ with description('Migrating _data.xml'):
             add_columns(cursor, columns, multiple=True)
             expected_sql = [
                 call(
-                    "SELECT count(attname) FROM pg_attribute WHERE attrelid = (SELECT oid FROM pg_class WHERE relname = %s AND relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public') AND relkind = 'r') AND attname = %s",
-                    ('test_model', 'random1')
+                    'SELECT count(attname) FROM pg_attribute WHERE attrelid = (SELECT oid FROM pg_class WHERE relname = %s AND relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = "public") AND relkind = "r") AND attname = %s', ('test_model', 'random1')
                 ),
                 call(
-                    "SELECT count(attname) FROM pg_attribute WHERE attrelid = (SELECT oid FROM pg_class WHERE relname = %s AND relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public') AND relkind = 'r') AND attname = %s",
-                    ('test_model', 'random2')),
+                    'SELECT count(attname) FROM pg_attribute WHERE attrelid = (SELECT oid FROM pg_class WHERE relname = %s AND relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = "public") AND relkind = "r") AND attname = %s', ('test_model', 'random2')
+                ),
                 call(
-                    'ALTER TABLE "test_model" ADD COLUMN "random1" character varying(16),\nADD COLUMN "random2" character varying(16)'),
-
+                    'ALTER TABLE "test_model" ADD COLUMN "random1" character varying(16),\nADD COLUMN "random2" character varying(16)'
+                ),
             ]
             expect(cursor.execute.call_args_list).to(contain_exactly(
-                 *expected_sql
+                *expected_sql
             ))
     with description('Adding columns'):
         with it('usign column by column'):
