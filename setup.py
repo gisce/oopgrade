@@ -12,7 +12,7 @@ dirname = os.path.dirname(__file__)
 
 setup(
     name='oopgrade',
-    version='0.16.0',
+    version='0.16.1',
     description='Upgrade and migration tools',
     long_description=readme,
     author='GISCE-TI, S.L.',
@@ -23,7 +23,7 @@ setup(
         'ooquery',
         'semver',
         'lxml',
-        'python-sql',
+        'python-sql>=1.0.0,<1.2.2',
         'six',
         'tqdm',
         'click',
