@@ -207,7 +207,7 @@ with description('Migrating _data.xml'):
                 *expected_sql
             ))
     with description('Adding columns'):
-        with it('usign multiple at once'):
+        with it('using multiple at once'):
             cursor = Mock()
             cursor.fetchone.side_effect = [
                 [0],  # No record for random1
@@ -221,16 +221,18 @@ with description('Migrating _data.xml'):
             }
             add_columns(cursor, columns, multiple=True)
             expected_sql = [
-                call('SELECT count(attname) FROM pg_attribute WHERE attrelid = ( SELECT oid FROM pg_class WHERE relname = %s ) AND attname = %s', ('test_model', 'random1')),
                 call(
-                    'SELECT count(attname) FROM pg_attribute WHERE attrelid = ( SELECT oid FROM pg_class WHERE relname = %s ) AND attname = %s',
-                    ('test_model', 'random2')),
+                    'SELECT count(attname) FROM pg_attribute WHERE attrelid = (SELECT oid FROM pg_class WHERE relname = %s AND relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = "public") AND relkind = "r") AND attname = %s', ('test_model', 'random1')
+                ),
                 call(
-                    'ALTER TABLE "test_model" ADD COLUMN "random1" character varying(16),\nADD COLUMN "random2" character varying(16)'),
-
+                    'SELECT count(attname) FROM pg_attribute WHERE attrelid = (SELECT oid FROM pg_class WHERE relname = %s AND relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = "public") AND relkind = "r") AND attname = %s', ('test_model', 'random2')
+                ),
+                call(
+                    'ALTER TABLE "test_model" ADD COLUMN "random1" character varying(16),\nADD COLUMN "random2" character varying(16)'
+                ),
             ]
             expect(cursor.execute.call_args_list).to(contain_exactly(
-                 *expected_sql
+                *expected_sql
             ))
     with description('Adding columns'):
         with it('usign column by column'):
@@ -248,12 +250,12 @@ with description('Migrating _data.xml'):
             add_columns(cursor, columns, multiple=False)
             expected_sql = [
                 call(
-                    'SELECT count(attname) FROM pg_attribute WHERE attrelid = ( SELECT oid FROM pg_class WHERE relname = %s ) AND attname = %s',
+                    'SELECT count(attname) FROM pg_attribute WHERE attrelid = (SELECT oid FROM pg_class WHERE relname = %s AND relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = "public") AND relkind = "r") AND attname = %s',
                     ('test_model', 'random1')),
                 call(
                     'ALTER TABLE "test_model" ADD COLUMN "random1" character varying(16)'),
                 call(
-                    'SELECT count(attname) FROM pg_attribute WHERE attrelid = ( SELECT oid FROM pg_class WHERE relname = %s ) AND attname = %s',
+                    'SELECT count(attname) FROM pg_attribute WHERE attrelid = (SELECT oid FROM pg_class WHERE relname = %s AND relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = "public") AND relkind = "r") AND attname = %s',
                     ('test_model', 'random2')),
                 call(
                     'ALTER TABLE "test_model" ADD COLUMN "random2" character varying(16)'),
