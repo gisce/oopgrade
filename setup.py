@@ -23,7 +23,7 @@ setup(
         'ooquery',
         'semver',
         'lxml',
-        'python-sql',
+        'python-sql>=1.0.0,<1.2.2',
         'six',
         'tqdm',
         'click',
