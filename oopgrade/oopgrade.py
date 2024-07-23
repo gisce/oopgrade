@@ -267,7 +267,7 @@ def add_columns(cr, column_spec, multiple=True):
             logger.info("table %s: add column %s",
                         table, column)
             if column_exists(cr, table, column):
-                logger.warn("table %s: column %s already exists",
+                logger.warning("table %s: column %s already exists",
                             table, column)
             else:
                 if multiple:
@@ -616,11 +616,13 @@ def column_exists(cr, table, column):
     :rtype: bool
     """
     cr.execute(
-        'SELECT count(attname) FROM pg_attribute '
-        'WHERE attrelid = '
-        '( SELECT oid FROM pg_class WHERE relname = %s ) '
-        'AND attname = %s',
-        (table, column));
+        'SELECT count(attname) FROM pg_attribute WHERE attrelid = ('
+            'SELECT oid FROM pg_class WHERE relname = %s AND relnamespace = ('
+                'SELECT oid FROM pg_namespace WHERE nspname = "public"'
+            ') AND relkind = "r"'
+        ') AND attname = %s',
+        (table, column)
+    )
     return cr.fetchone()[0] == 1
 
 
