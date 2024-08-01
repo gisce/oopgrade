@@ -29,7 +29,8 @@ __all__ = [
     'get_installed_modules',
     'module_is_installed',
     'load_access_rules_from_model_name',
-    'delete_record'
+    'delete_record',
+    'load_translation',
 ]
 
 
@@ -751,3 +752,19 @@ def module_is_installed(cursor, module_name):
                      ('state', 'in', MODULE_INSTALLED_STATES)]
     mod_ids = mod_obj.search(cursor, uid, search_params)
     return len(mod_ids) > 0
+
+
+def load_translation(cursor, lang, name, type, res_id, src, value):
+    if res_id:
+        insert_sql = """
+        INSERT INTO ir_translation(lang, name, type, res_id, src, value) 
+        VALUES (%(lang)s, %(name)s, %(type)s, %(res_id)s, %(src)s, %(value)s) 
+        ON CONFLICT (lang, src_md5, name, type, res_id) WHERE res_id = %(res_id)s DO UPDATE SET value = EXCLUDED.value
+        """
+    else:
+        insert_sql = """
+        INSERT INTO ir_translation(lang, name, type, res_id, src, value) 
+        VALUES (%(lang)s, %(name)s, %(type)s, %(res_id)s, %(src)s, %(value)s) 
+        ON CONFLICT (lang, src_md5, name, type, res_id) WHERE res_id is null DO UPDATE SET value = EXCLUDED.value
+        """
+    cursor.execute(insert_sql, {'lang': lang, 'name': name, 'type': type, 'res_id': res_id, 'src': src, 'value': value})
