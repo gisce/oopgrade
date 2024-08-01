@@ -752,5 +752,5 @@ def load_translation(cursor, lang, name, type, res_id, src, value):
     cursor.execute("""
         INSERT INTO ir_translation(lang, name, type, res_id, src, value) 
         VALUES (%(lang)s, %(name)s, %(model)s, %(res_id)s, %(src)s, %(value)s) 
-        ON CONFLICT (lang, src_md5, name, type, res_id) WHERE res_id is not null DO NOTHING
+        ON CONFLICT (lang, src_md5, name, type, res_id) WHERE res_id is not null DO UPDATE SET value = EXCLUDED.value
     """, {'lang': lang, 'name': name, 'type': type, 'res_id': res_id, 'src': src, 'value': value})
