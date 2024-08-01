@@ -12,7 +12,7 @@ dirname = os.path.dirname(__file__)
 
 setup(
     name='oopgrade',
-    version='0.16.3',
+    version='0.17.0',
     description='Upgrade and migration tools',
     long_description=readme,
     author='GISCE-TI, S.L.',
