@@ -29,7 +29,8 @@ __all__ = [
     'get_installed_modules',
     'module_is_installed',
     'load_access_rules_from_model_name',
-    'delete_record'
+    'delete_record',
+    'load_translation',
 ]
 
 
@@ -745,3 +746,11 @@ def module_is_installed(cursor, module_name):
                      ('state', 'in', MODULE_INSTALLED_STATES)]
     mod_ids = mod_obj.search(cursor, uid, search_params)
     return len(mod_ids) > 0
+
+
+def load_translation(cursor, lang, name, type, res_id, src, value):
+    cursor.execute("""
+        INSERT INTO ir_translation(lang, name, type, res_id, src, value) 
+        VALUES (%(lang)s, %(name)s,%(model)s, %(res_id)s, %(src)s, %(value)s) 
+        ON CONFLICT (lang, src_md5, name, type, res_id) WHERE res_id is not null DO NOTHING
+    """)
