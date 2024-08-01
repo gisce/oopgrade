@@ -115,7 +115,7 @@ def load_data(cr, module_name, filename, idref=None, mode='init'):
         fp.close()
 
 
-def load_data_records(cr, module_name, filename, record_ids, mode='update'):
+def load_data_records(cr, module_name, filename, record_ids, mode='update', multi=False):
     """
     :param module_name: the name of the module
     :param filename: the path to the filename, relative to the module \
@@ -123,6 +123,7 @@ def load_data_records(cr, module_name, filename, record_ids, mode='update'):
     :param record_ids: List of records to process
     :param mode: one of 'init', 'update', 'demo'. Always use 'init' for adding new items \
     from files that are marked with 'noupdate'. Defaults to 'update'.
+    :param multi: If false, it will only find the first occurence of the record_id passed. Otherwise, it will find all
     """
     from lxml import etree
     from tools import config, xml_import
@@ -137,10 +138,15 @@ def load_data_records(cr, module_name, filename, record_ids, mode='update'):
     logger.info('{}: loading file {}'.format(module_name, filename))
     for record_id in record_ids:
         logger.info("{}: Loading record id: {}".format(module_name, record_id))
-        rec = doc.findall("//*[@id='{}']".format(record_id))[0]
-        data = doc.findall("//*[@id='{}']/..".format(record_id))[0]
-        xml_to_import._tags[rec.tag](cr, rec, data)
-
+        if not multi:
+            rec = doc.findall("//*[@id='{}']".format(record_id))[0]
+            data = doc.findall("//*[@id='{}']/..".format(record_id))[0]
+            xml_to_import._tags[rec.tag](cr, rec, data)
+        else:
+            recs = doc.findall("//*[@id='{}']".format(record_id))
+            datas = doc.findall("//*[@id='{}']/..".format(record_id))
+            for rec, data in zip(recs, datas):
+                xml_to_import._tags[rec.tag](cr, rec, data)
 
 def load_access_rules_from_model_name(cr, module_name, model_ids, filename='security/ir.model.access.csv', mode='init'):
     # Example: load_access_rules_from_model_name(cursor, 'base', ['model_ir_auto_vacuum'], mode='init')
