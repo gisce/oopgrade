@@ -29,7 +29,8 @@ __all__ = [
     'get_installed_modules',
     'module_is_installed',
     'load_access_rules_from_model_name',
-    'delete_record'
+    'delete_record',
+    'load_translation',
 ]
 
 
@@ -135,7 +136,7 @@ def load_data(cr, module_name, filename, idref=None, mode='init'):
         fp.close()
 
 
-def load_data_records(cr, module_name, filename, record_ids, mode='update'):
+def load_data_records(cr, module_name, filename, record_ids, mode='update', multi=False):
     """
     :param module_name: the name of the module
     :param filename: the path to the filename, relative to the module \
@@ -143,6 +144,7 @@ def load_data_records(cr, module_name, filename, record_ids, mode='update'):
     :param record_ids: List of records to process
     :param mode: one of 'init', 'update', 'demo'. Always use 'init' for adding new items \
     from files that are marked with 'noupdate'. Defaults to 'update'.
+    :param multi: If false, it will only find the first occurence of the record_id passed. Otherwise, it will find all
     """
     from lxml import etree
     from tools import config, xml_import
@@ -157,10 +159,15 @@ def load_data_records(cr, module_name, filename, record_ids, mode='update'):
     logger.info('{}: loading file {}'.format(module_name, filename))
     for record_id in record_ids:
         logger.info("{}: Loading record id: {}".format(module_name, record_id))
-        rec = doc.findall("//*[@id='{}']".format(record_id))[0]
-        data = doc.findall("//*[@id='{}']/..".format(record_id))[0]
-        xml_to_import._tags[rec.tag](cr, rec, data)
-
+        if not multi:
+            rec = doc.findall("//*[@id='{}']".format(record_id))[0]
+            data = doc.findall("//*[@id='{}']/..".format(record_id))[0]
+            xml_to_import._tags[rec.tag](cr, rec, data)
+        else:
+            recs = doc.findall("//*[@id='{}']".format(record_id))
+            datas = doc.findall("//*[@id='{}']/..".format(record_id))
+            for rec, data in zip(recs, datas):
+                xml_to_import._tags[rec.tag](cr, rec, data)
 
 def load_access_rules_from_model_name(cr, module_name, model_ids, filename='security/ir.model.access.csv', mode='init'):
     # Example: load_access_rules_from_model_name(cursor, 'base', ['model_ir_auto_vacuum'], mode='init')
@@ -626,14 +633,13 @@ def column_exists(cr, table, column):
     :return: True if the column exists
     :rtype: bool
     """
-    cr.execute(
-        'SELECT count(attname) FROM pg_attribute WHERE attrelid = ('
-            'SELECT oid FROM pg_class WHERE relname = %s AND relnamespace = ('
-                'SELECT oid FROM pg_namespace WHERE nspname = "public"'
-            ') AND relkind = "r"'
-        ') AND attname = %s',
-        (table, column)
+    query = (
+        "SELECT count(attname) FROM pg_attribute WHERE attrelid = ("
+        "SELECT oid FROM pg_class WHERE relname = %s AND relnamespace = ("
+        "SELECT oid FROM pg_namespace WHERE nspname = 'public') "
+        "AND relkind = 'r') AND attname = %s"
     )
+    cr.execute(query, (table, column))
     return cr.fetchone()[0] == 1
 
 
@@ -766,3 +772,19 @@ def module_is_installed(cursor, module_name):
                      ('state', 'in', MODULE_INSTALLED_STATES)]
     mod_ids = mod_obj.search(cursor, uid, search_params)
     return len(mod_ids) > 0
+
+
+def load_translation(cursor, lang, name, type, res_id, src, value):
+    if res_id:
+        insert_sql = """
+        INSERT INTO ir_translation(lang, name, type, res_id, src, value) 
+        VALUES (%(lang)s, %(name)s, %(type)s, %(res_id)s, %(src)s, %(value)s) 
+        ON CONFLICT (lang, src_md5, name, type, res_id) WHERE res_id = %(res_id)s DO UPDATE SET value = EXCLUDED.value
+        """
+    else:
+        insert_sql = """
+        INSERT INTO ir_translation(lang, name, type, res_id, src, value) 
+        VALUES (%(lang)s, %(name)s, %(type)s, %(res_id)s, %(src)s, %(value)s) 
+        ON CONFLICT (lang, src_md5, name, type, res_id) WHERE res_id is null DO UPDATE SET value = EXCLUDED.value
+        """
+    cursor.execute(insert_sql, {'lang': lang, 'name': name, 'type': type, 'res_id': res_id, 'src': src, 'value': value})
