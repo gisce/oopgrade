@@ -67,8 +67,9 @@ def delete_record(cursor, module_name, record_names):
                     'sc_view_id': model_data_vs['res_id']
                 }
                 cursor.execute(sql_sc_search, params_sc_id)
-                view_id_to_delete = cursor.dictfetchall()[0]
+                view_id_to_delete = cursor.dictfetchall()
                 if view_id_to_delete:
+                    view_id_to_delete = view_id_to_delete[0]
                     sql_sc_del = """
                         DELETE FROM ir_ui_view_sc WHERE id = %(sc_view_id)s
                     """
