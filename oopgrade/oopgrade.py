@@ -93,7 +93,7 @@ def delete_record(cursor, module_name, record_names):
             )
 
 
-def load_data(cr, module_name, filename, idref=None, mode='init'):
+def load_data(cr, module_name, filename, idref=None, mode='update'):
     """
     Load an xml or csv data file from your post script. The usual case for this is the
     occurrence of newly added essential or useful data in the module that is
