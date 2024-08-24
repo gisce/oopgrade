@@ -31,6 +31,12 @@ __all__ = [
     'load_access_rules_from_model_name',
     'delete_record',
     'load_translation',
+    'migrate_data_between_tables',
+    'check_data_integrity',
+    'drop_index',
+    'add_index',
+    'restore_table',
+    'backup_table'
 ]
 
 
@@ -789,3 +795,137 @@ def load_translation(cursor, lang, name, type, res_id, src, value):
         ON CONFLICT (lang, src_md5, name, type, res_id) WHERE res_id is null DO UPDATE SET value = EXCLUDED.value
         """
     cursor.execute(insert_sql, {'lang': lang, 'name': name, 'type': type, 'res_id': res_id, 'src': src, 'value': value})
+
+
+def backup_table(cursor, table_name):
+    """
+    Creates a backup of a specific table by copying its content to a temporary table.
+
+    :param cursor: Database cursor.
+    :param table_name: Name of the table to back up.
+    """
+    backup_table_name = "{}_backup".format(table_name)
+    cursor.execute(
+        "CREATE TABLE {} AS TABLE {}".format(backup_table_name, table_name)
+    )
+    logger.info("Backup created for table: {}".format(table_name))
+
+
+def restore_table(cursor, table_name):
+    """
+    Restores a table from its backup.
+
+    :param cursor: Database cursor.
+    :param table_name: Name of the table to restore.
+    """
+    backup_table_name = "{}_backup".format(table_name)
+    cursor.execute("DROP TABLE IF EXISTS {}".format(table_name))
+    cursor.execute("ALTER TABLE {} RENAME TO {}".format(backup_table_name, table_name))
+    logger.info("Table {} restored from backup".format(table_name))
+
+
+def add_index(cursor, table_name, columns, unique=False):
+    """
+    Adds an index to one or more columns in a specific table.
+
+    :param cursor: Database cursor.
+    :param table_name: Name of the table.
+    :param columns: List of columns to include in the index.
+    :param unique: Boolean indicating if the index should be unique.
+    """
+    index_name = "{}_{}_idx".format(table_name, "_".join(columns))
+    columns_str = ", ".join(columns)
+    unique_str = "UNIQUE" if unique else ""
+    cursor.execute(
+        "CREATE {} INDEX {} ON {} ({})".format(unique_str, index_name, table_name, columns_str)
+    )
+    logger.info("{} index {} created on table {}".format(unique_str.capitalize(), index_name, table_name))
+
+
+def drop_index(cursor, index_name):
+    """
+    Removes a specific index.
+
+    :param cursor: Database cursor.
+    :param index_name: Name of the index to remove.
+    """
+    cursor.execute(
+        "DROP INDEX IF EXISTS {}".format(index_name)
+    )
+    logger.info("Index {} dropped".format(index_name))
+
+
+def check_data_integrity(cursor, table_name):
+    """
+    Automatically checks for common data integrity issues in a table, such as null values in non-nullable columns
+    and foreign key violations.
+
+    :param cursor: Database cursor.
+    :param table_name: Name of the table to check.
+    :return: True if no issues are found, False otherwise.
+    """
+    issues_found = False
+    # Check for null values in non-nullable columns
+    cursor.execute(
+        """
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_name = %s AND is_nullable = 'NO'
+        """, (table_name,)
+    )
+    non_nullable_columns = [row[0] for row in cursor.fetchall()]
+    for column in non_nullable_columns:
+        cursor.execute(
+            "SELECT COUNT(*) FROM {} WHERE {} IS NULL".format(table_name, column)
+        )
+        null_count = cursor.fetchone()[0]
+        if null_count > 0:
+            logger.warning("Integrity issue: {} null values found in non-nullable column '{}' in table {}".format(
+                null_count, column, table_name
+            ))
+            issues_found = True
+
+    # Check for foreign key violations
+    cursor.execute(
+        """
+        SELECT tc.constraint_name, kcu.column_name, ccu.table_name AS foreign_table_name, ccu.column_name AS foreign_column_name
+        FROM information_schema.table_constraints AS tc
+        JOIN information_schema.key_column_usage AS kcu ON tc.constraint_name = kcu.constraint_name
+        JOIN information_schema.constraint_column_usage AS ccu ON ccu.constraint_name = tc.constraint_name
+        WHERE constraint_type = 'FOREIGN KEY' AND tc.table_name = %s
+        """, (table_name,)
+    )
+    foreign_keys = cursor.fetchall()
+    for fk in foreign_keys:
+        cursor.execute(
+            "SELECT COUNT(*) FROM {} t1 LEFT JOIN {} t2 ON t1.{} = t2.{} WHERE t2.{} IS NULL".format(
+                table_name, fk[2], fk[1], fk[3], fk[3]
+            )
+        )
+        fk_violations = cursor.fetchone()[0]
+        if fk_violations > 0:
+            logger.warning("Integrity issue: {} foreign key violations found for '{}' in table {}".format(
+                fk_violations, fk[1], table_name
+            ))
+            issues_found = True
+
+    if not issues_found:
+        logger.info("No integrity issues found in table {}".format(table_name))
+    return not issues_found
+
+
+def migrate_data_between_tables(cursor, source_table, destination_table, column_mapping):
+    """
+    Migrates data from one table to another with column mapping.
+
+    :param cursor: Database cursor.
+    :param source_table: Source table.
+    :param destination_table: Destination table.
+    :param column_mapping: Dictionary mapping source columns to destination columns {source_column: destination_column}.
+    """
+    columns_source = ', '.join(column_mapping.keys())
+    columns_dest = ', '.join(column_mapping.values())
+    cursor.execute(
+        "INSERT INTO {} ({}) SELECT {} FROM {}".format(destination_table, columns_dest, columns_source, source_table)
+    )
+    logger.info("Data migrated from {} to {}".format(source_table, destination_table))
