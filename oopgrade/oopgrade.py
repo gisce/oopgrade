@@ -776,7 +776,7 @@ def module_is_installed(cursor, module_name):
 
 
 def load_translation(cursor, lang, name, type, res_id, src, value):
-    if res_id:
+    if res_id is not False and res_id is not None:
         insert_sql = """
         INSERT INTO ir_translation(lang, name, type, res_id, src, value) 
         VALUES (%(lang)s, %(name)s, %(type)s, %(res_id)s, %(src)s, %(value)s) 
