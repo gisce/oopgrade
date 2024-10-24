@@ -421,14 +421,19 @@ def remove_wizard(cursor, wizard_models):
                 'ir.actions.act_window,{}'.format(act_record[0]),
                 'ir.actions.act_window, {}'.format(act_record[0]),
             )
-        cursor.execute(
-            "DELETE from ir_ui_menu WHERE id in ("
-            "select res_id from ir_values where model = 'ir.ui.menu' and value in {})".format(str(act_list)))
+        if act_list:
+            cursor.execute(
+                "DELETE from ir_ui_menu WHERE id in ("
+                "select res_id from ir_values where model = 'ir.ui.menu' and value in {})".format(str(act_list)))
 
-        # Values
-        cursor.execute(
-            "DELETE FROM ir_values WHERE value in {}".format(str(act_list))
-        )
+            # Values
+            cursor.execute(
+                "DELETE FROM ir_values WHERE value in {}".format(str(act_list))
+            )
+
+        # Shortcuts
+        cursor.execute("DELETE from ir_ui_view_sc where view_id in "
+                       "(select id from ir_ui_view where model = '{}')".format(model))
 
         # Actions
         cursor.execute(
