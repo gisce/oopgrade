@@ -432,25 +432,41 @@ def remove_wizard(cursor, wizard_models):
             )
 
         # Shortcuts
-        cursor.execute("DELETE from ir_ui_view_sc where view_id in "
-                       "(select id from ir_ui_view where model = '{}')".format(model))
+        cursor.execute("select id from ir_ui_view where model = '{}'".format(model))
+        data_records = cursor.fetchall()
+        record_ids = [record[0] for record in data_records]
+        if record_ids:
+            cursor.execute("DELETE from ir_ui_view_sc where view_id in "
+                           "(select id from ir_ui_view where model = '{}')".format(model))
 
         # Actions
-        cursor.execute(
-            "DELETE from ir_model_data where model = 'ir.actions.act_window' and res_id in "
-            "(select id from ir_act_window where res_model = '{}')".format(model))
+        cursor.execute("select id from ir_act_window where res_model = '{}'".format(model))
+        data_records = cursor.fetchall()
+        record_ids = [record[0] for record in data_records]
+        if record_ids:
+            cursor.execute(
+                "DELETE from ir_model_data where model = 'ir.actions.act_window' and res_id in "
+                "(select id from ir_act_window where res_model = '{}')".format(model))
         cursor.execute("DELETE from ir_act_window where res_model = '{}'".format(model))
 
         # Views
-        cursor.execute(
-            "DELETE from ir_model_data where model = 'ir.ui.view' and res_id in "
-            "(select id from ir_ui_view where model = '{}')".format(model))
+        cursor.execute("select id from ir_ui_view where model = '{}'".format(model))
+        data_records = cursor.fetchall()
+        record_ids = [record[0] for record in data_records]
+        if record_ids:
+            cursor.execute(
+                "DELETE from ir_model_data where model = 'ir.ui.view' and res_id in "
+                "(select id from ir_ui_view where model = '{}')".format(model))
         cursor.execute("DELETE from ir_ui_view where model = '{}'".format(model))
 
         # Access rules
-        cursor.execute(
-            "DELETE from ir_model_data where model = 'ir.model.access' and res_id in "
-            "(select id from ir_model_access where model_id = '{}')".format(model_id))
+        cursor.execute("select id from ir_model_access where model_id = '{}'".format(model_id))
+        data_records = cursor.fetchall()
+        record_ids = [record[0] for record in data_records]
+        if record_ids:
+            cursor.execute(
+                "DELETE from ir_model_data where model = 'ir.model.access' and res_id in "
+                "(select id from ir_model_access where model_id = '{}')".format(model_id))
         cursor.execute("DELETE from ir_model_access where model_id = {}".format(model_id))
 
         # Model
@@ -458,9 +474,13 @@ def remove_wizard(cursor, wizard_models):
         cursor.execute("DELETE from ir_model where id = {}".format(model_id))
 
         # Fields
-        cursor.execute(
-            "DELETE from ir_model_data where model = 'ir.model.fields' and res_id in "
-            "(select id from ir_model_fields where model_id = '{}')".format(model_id))
+        cursor.execute("select id from ir_model_fields where model_id = '{}'".format(model_id))
+        data_records = cursor.fetchall()
+        record_ids = [record[0] for record in data_records]
+        if record_ids:
+            cursor.execute(
+                "DELETE from ir_model_data where model = 'ir.model.fields' and res_id in "
+                "(select id from ir_model_fields where model_id = '{}')".format(model_id))
 
 
 def clean_old_wizard(cr, old_wizard_name, module):
