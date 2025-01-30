@@ -808,9 +808,10 @@ def load_translation(cursor, lang, name, type, res_id, src, value):
         ON CONFLICT (lang, src_md5, name, type, res_id) WHERE res_id = %(res_id)s DO UPDATE SET value = EXCLUDED.value
         """
     else:
+        res_id = None  # Per si ens arriba False, perque en SQL False != null
         insert_sql = """
         INSERT INTO ir_translation(lang, name, type, res_id, src, value) 
         VALUES (%(lang)s, %(name)s, %(type)s, %(res_id)s, %(src)s, %(value)s) 
-        ON CONFLICT (lang, src_md5, name, type, res_id) WHERE res_id is null DO UPDATE SET value = EXCLUDED.value
+        ON CONFLICT (lang, src_md5, name, type) WHERE res_id is null DO UPDATE SET value = EXCLUDED.value
         """
     cursor.execute(insert_sql, {'lang': lang, 'name': name, 'type': type, 'res_id': res_id, 'src': src, 'value': value})
