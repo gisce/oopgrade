@@ -12,7 +12,7 @@ dirname = os.path.dirname(__file__)
 
 setup(
     name='oopgrade',
-    version='0.18.0',
+    version='0.18.1',
     description='Upgrade and migration tools',
     long_description=readme,
     long_description_content_type='text/x-rst',
