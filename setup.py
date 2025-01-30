@@ -15,6 +15,7 @@ setup(
     version='0.18.0',
     description='Upgrade and migration tools',
     long_description=readme,
+    long_description_content_type='text/x-rst',
     author='GISCE-TI, S.L.',
     author_email='devel@gisce.net',
     url='https://github.com/gisce/oopgrade',
