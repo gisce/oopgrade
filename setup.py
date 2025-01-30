@@ -5,7 +5,7 @@ import os
 from setuptools import setup, find_packages
 
 
-with open('README.rst') as readme_file:
+with open('README.md') as readme_file:
     readme = readme_file.read()
 
 dirname = os.path.dirname(__file__)
@@ -15,7 +15,7 @@ setup(
     version='0.18.1',
     description='Upgrade and migration tools',
     long_description=readme,
-    long_description_content_type='text/x-rst',
+    long_description_content_type="text/markdown",
     author='GISCE-TI, S.L.',
     author_email='devel@gisce.net',
     url='https://github.com/gisce/oopgrade',
