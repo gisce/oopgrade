@@ -31,6 +31,7 @@ __all__ = [
     'load_access_rules_from_model_name',
     'delete_record',
     'load_translation',
+    'MigrationHelper',
 ]
 
 
@@ -815,3 +816,116 @@ def load_translation(cursor, lang, name, type, res_id, src, value):
         ON CONFLICT (lang, src_md5, name, type) WHERE res_id is null DO UPDATE SET value = EXCLUDED.value
         """
     cursor.execute(insert_sql, {'lang': lang, 'name': name, 'type': type, 'res_id': res_id, 'src': src, 'value': value})
+
+
+class MigrationHelper:
+    """Helper class for common OpenERP/Odoo migration operations"""
+
+    def __init__(self, cursor, module_name, logger_name='openerp.migration'):
+        """Initialize the migration helper
+
+        Args:
+            cursor: Database cursor
+            module_name: Module name (e.g. 'giscedata_facturacio_switching')
+        """
+
+        self.cursor = cursor
+        self.logger = logging.getLogger(logger_name)
+        self.module_name = module_name
+        self.pool = None
+
+    def init_model(self, model_name):
+        """Initialize a model's database table
+
+        Args:
+            model_name: Full name of the model (e.g. 'wizard.accions.massives.giscedata.lot')
+        """
+        import pooler
+
+        # Initialize the pool if it hasn't been initialized yet
+        if not hasattr(self, 'pool') or self.pool is None:
+            self.logger.info("Creating pooler")
+            self.pool = pooler.get_pool(self.cursor.dbname)
+
+        table_name = model_name.replace('.', '_')
+        is_new_table = not table_exists(self.cursor, table_name)
+
+        model = self.pool.get(model_name)
+        self.logger.info("{action} table: {model_name}".format(action="Creating" if is_new_table else "Updating", model_name=model_name))
+        model._auto_init(self.cursor, context={'module': self.module_name})
+        self.logger.info("Table {action} successfully.".format(action="created" if is_new_table else "updated"))
+
+        return self
+
+    def update_xml(self, xml_path, mode='update'):
+        """Update an entire XML file
+
+        Args:
+            xml_path: Path to the XML file
+            mode: 'update' (default) for existing xml or 'init' for new xml
+        """
+        self.logger.info("{action} XML '{xml_path}'".format(action="Updating" if mode == 'update' else "Initializing", xml_path=xml_path))
+        load_data(self.cursor, self.module_name, xml_path, idref=None, mode=mode)
+        self.logger.info("XML successfully {action}.".format(action="updated" if mode == 'update' else "initialized"))
+
+        return self
+
+    def update_xml_records(self, xml_path, init_record_ids=None, update_record_ids=None):
+        """Update specific records in an XML file
+
+        Args:
+            xml_path: Path to the XML file
+            init_record_ids: List of record IDs to initialize
+            update_record_ids: List of record IDs to update
+        """
+        # Check if both parameters are not provided or are empty lists
+        if not init_record_ids and not update_record_ids:
+            return self
+
+        # Process initialization if init_record_ids is provided and non-empty
+        if init_record_ids:
+            self.logger.info("Initializing specific records in {xml_path}".format(xml_path=xml_path))
+            load_data_records(self.cursor, self.module_name, xml_path, init_record_ids, mode='init')
+            self.logger.info("XML records successfully initialized.")
+
+        # Process update if update_record_ids is provided and non-empty
+        if update_record_ids:
+            self.logger.info("Updating specific records in {xml_path}".format(xml_path=xml_path))
+            load_data_records(self.cursor, self.module_name, xml_path, update_record_ids, mode='update')
+            self.logger.info("XML records successfully updated.")
+
+        return self
+
+    def update_access_csv(self, csv_path=None, model_names=None):
+        """Update access rules from CSV file or model names
+
+        Args:
+            csv_path: Path to the CSV file (default: 'security/ir.model.access.csv')
+            model_names: List of model names to update access rules for
+        """
+        if csv_path:
+            self.logger.info("Updating access CSV {csv_path}".format(csv_path=csv_path))
+            load_data(self.cursor, self.module_name, csv_path, idref=None, mode='update')
+            self.logger.info("CSV successfully updated.")
+
+        if model_names:
+            self.logger.info("Updating access rules for models: {model_names}".format(model_names=model_names))
+            load_access_rules_from_model_name(self.cursor, self.module_name, model_names)
+            self.logger.info("Access rules successfully updated.")
+
+        return self
+
+    def execute_sql(self, sql_query, params=None):
+        """Execute a raw SQL query
+
+        Args:
+            sql_query: SQL query string
+            params: Parameters for the query
+        """
+        self.logger.info("Executing SQL: {}...".format(sql_query[:60]))
+        if params:
+            self.cursor.execute(sql_query, params)
+        else:
+            self.cursor.execute(sql_query)
+        self.logger.info("SQL executed successfully.")
+        return self
