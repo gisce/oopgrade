@@ -896,7 +896,7 @@ class MigrationHelper:
 
         return self
 
-    def update_access_csv(self, model_ids, filename='security/ir.model.access.csv', mode='init'):
+    def update_access_csv(self, model_ids, filename='security/ir.model.access.csv', mode='update'):
         """Update access rules
 
         Args:
