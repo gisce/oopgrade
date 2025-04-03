@@ -902,7 +902,7 @@ class MigrationHelper:
         Args:
             model_ids: List of model IDs to update access rules for
             filename: Path to the CSV file (default: 'security/ir.model.access.csv')
-            mode: 'init' (default) for new CSV or 'update' for existing CSV
+            mode: 'init' for new CSV or 'update' (default) for existing CSV
         """
 
         self.logger.info("Updating access rules for models: {model_ids}".format(model_ids=model_ids))
