@@ -896,22 +896,18 @@ class MigrationHelper:
 
         return self
 
-    def update_access_csv(self, csv_path=None, model_names=None):
-        """Update access rules from CSV file or model names
+    def update_access_csv(self, model_ids, filename='security/ir.model.access.csv', mode='update'):
+        """Update access rules
 
         Args:
-            csv_path: Path to the CSV file (default: 'security/ir.model.access.csv')
-            model_names: List of model names to update access rules for
+            model_ids: List of model IDs to update access rules for
+            filename: Path to the CSV file (default: 'security/ir.model.access.csv')
+            mode: 'init' for new CSV or 'update' (default) for existing CSV
         """
-        if csv_path:
-            self.logger.info("Updating access CSV {csv_path}".format(csv_path=csv_path))
-            load_data(self.cursor, self.module_name, csv_path, idref=None, mode='update')
-            self.logger.info("CSV successfully updated.")
 
-        if model_names:
-            self.logger.info("Updating access rules for models: {model_names}".format(model_names=model_names))
-            load_access_rules_from_model_name(self.cursor, self.module_name, model_names)
-            self.logger.info("Access rules successfully updated.")
+        self.logger.info("Updating access rules for models: {model_ids}".format(model_ids=model_ids))
+        load_access_rules_from_model_name(self.cursor, self.module_name, model_ids=model_ids, filename=filename, mode=mode)
+        self.logger.info("Access rules successfully updated.")
 
         return self
 
