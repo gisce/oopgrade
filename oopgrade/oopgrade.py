@@ -390,19 +390,19 @@ def delete_model_workflow(cr, model):
         "DELETE FROM wkf WHERE osv = %s", (model,))
 
 
-def remove_wizard(cursor, wizard_models):
+def remove_model(cursor, models):
     """
-    Removes a list of wizards (Type osv.osv_memory) and all of its remaining
+    Removes a list of models and all of its remaining
     elements like menu, values, actions, views, etc.
 
     :param cursor: Database cursor
-    :param wizard_models: list of wizard model names
-           I.E. ['wizard.do.something', 'wizard.do.other.stuff']
+    :param models: list of model names
+           I.E. ['res.partner.foo', 'res.partner.staff']
     """
     import pooler
 
     pool = pooler.get_pool(cursor.dbname)
-    for model in wizard_models:
+    for model in models:
         model_id = pool.get('ir.model').search(cursor, 1, [('model', '=', model)])
 
         if len(model_id):
@@ -482,6 +482,10 @@ def remove_wizard(cursor, wizard_models):
             cursor.execute(
                 "DELETE from ir_model_data where model = 'ir.model.fields' and res_id in "
                 "(select id from ir_model_fields where model_id = '{}')".format(model_id))
+
+
+# Alias for backward compatibility: remove_wizard = remove_model
+remove_wizard = remove_model
 
 
 def clean_old_wizard(cr, old_wizard_name, module):
