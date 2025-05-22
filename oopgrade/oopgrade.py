@@ -390,7 +390,7 @@ def delete_model_workflow(cr, model):
         "DELETE FROM wkf WHERE osv = %s", (model,))
 
 
-def remove_wizard(cursor, wizard_models):
+def remove_model(cursor, wizard_models):
     """
     Removes a list of wizards (Type osv.osv_memory) and all of its remaining
     elements like menu, values, actions, views, etc.
@@ -482,6 +482,10 @@ def remove_wizard(cursor, wizard_models):
             cursor.execute(
                 "DELETE from ir_model_data where model = 'ir.model.fields' and res_id in "
                 "(select id from ir_model_fields where model_id = '{}')".format(model_id))
+
+
+# Alias really remove a wizard is like remove a model
+remove_wizard = remove_model
 
 
 def clean_old_wizard(cr, old_wizard_name, module):
