@@ -484,7 +484,7 @@ def remove_model(cursor, wizard_models):
                 "(select id from ir_model_fields where model_id = '{}')".format(model_id))
 
 
-# Alias really remove a wizard is like remove a model
+# Alias for backward compatibility: remove_wizard = remove_model
 remove_wizard = remove_model
 
 
