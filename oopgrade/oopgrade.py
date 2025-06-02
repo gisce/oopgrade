@@ -1057,7 +1057,7 @@ class MigrationHelper:
         :rtype: MigrationHelper
         """
 
-        self.logger.info("Loading {} translations for {} ({}, {}, {})".format(lang, name, field_type, res_id, source, value))
+        self.logger.info("Loading {} translations for {} of type {} with resource ID = '{}' -> SOURCE: {} | VALUE: {})".format(lang, name, field_type, res_id, source, value))
         load_translation(self.cursor, lang=lang, name=name, type=field_type, res_id=res_id, src=source, value=value)
         self.logger.info("Translations successfully loaded")
 
