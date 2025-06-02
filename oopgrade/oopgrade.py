@@ -860,7 +860,7 @@ class MigrationHelper:
         is_new_table = not table_exists(self.cursor, table_name)
 
         model = self.pool.get(model_name)
-        self.logger.info("{action} table: {model_name}".format(action="Creating" if is_new_table else "Updating",    model_name=model_name))
+        self.logger.info("{action} table: {model_name}".format(action="Creating" if is_new_table else "Updating", model_name=model_name))
         model._auto_init(self.cursor, context={'module': self.module_name})
         self.logger.info("Table {action} successfully.".format(action="created" if is_new_table else "updated"))
 
