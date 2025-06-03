@@ -823,30 +823,35 @@ def load_translation(cursor, lang, name, type, res_id, src, value):
 
 
 class MigrationHelper:
-    """Helper class for common OpenERP/Odoo migration operations"""
+    """Helper class for GISCE ERP migrations."""
 
     def __init__(self, cursor, module_name, logger_name='openerp.migration'):
-        """Initialize the migration helper
+        """Initialize the migration helper.
 
-        Args:
-            cursor: Database cursor
-            module_name: Module name (e.g. 'giscedata_facturacio_switching')
+        :param cursor: Database cursor (e.g. psycopg2 cursor).
+        :type cursor: any
+        :param module_name: Module name (e.g. 'giscedata_facturacio_switching').
+        :type module_name: str
+        :param logger_name: Name of the logger (default: 'openerp.migration').
+        :type logger_name: str
         """
-
         self.cursor = cursor
         self.logger = logging.getLogger(logger_name)
         self.module_name = module_name
         self.pool = None
 
     def init_model(self, model_name):
-        """Initialize a model's database table
+        """Initialize a model’s database table.
 
-        Args:
-            model_name: Full name of the model (e.g. 'wizard.accions.massives.giscedata.lot')
+        :param model_name: Full name of the model (e.g. 'wizard.accions.massives.giscedata.lot').
+        :type model_name: str
+
+        :return: self
+        :rtype: MigrationHelper
         """
         import pooler
 
-        # Initialize the pool if it hasn't been initialized yet
+        # Initialize the pool if it hasn't been set up yet.
         if not hasattr(self, 'pool') or self.pool is None:
             self.logger.info("Creating pooler")
             self.pool = pooler.get_pool(self.cursor.dbname)
@@ -862,53 +867,83 @@ class MigrationHelper:
         return self
 
     def update_xml(self, xml_path, mode='update'):
-        """Update an entire XML file
+        """Update an entire XML file.
 
-        Args:
-            xml_path: Path to the XML file
-            mode: 'update' (default) for existing xml or 'init' for new xml
+        :param xml_path: Path to the XML file.
+        :type xml_path: str
+        :param mode: 'update' (default) for existing XML or 'init' for initializing a new XML.
+        :type mode: str
+
+        :return: self
+        :rtype: MigrationHelper
         """
-        self.logger.info("{action} XML '{xml_path}'".format(action="Updating" if mode == 'update' else "Initializing", xml_path=xml_path))
+        action = "Updating" if mode == 'update' else "Initializing"
+        self.logger.info("{action} XML '{xml_path}'".format(action=action, xml_path=xml_path))
         load_data(self.cursor, self.module_name, xml_path, idref=None, mode=mode)
-        self.logger.info("XML successfully {action}.".format(action="updated" if mode == 'update' else "initialized"))
+        result_action = "updated" if mode == 'update' else "initialized"
+        self.logger.info("XML successfully {action}.".format(action=result_action))
 
         return self
 
-    def update_xml_records(self, xml_path, init_record_ids=None, update_record_ids=None):
-        """Update specific records in an XML file
+    def update_xml_records(self, xml_path, init_record_ids=None, update_record_ids=None, multi=False):
+        """Update specific records in an XML file.
 
-        Args:
-            xml_path: Path to the XML file
-            init_record_ids: List of record IDs to initialize
-            update_record_ids: List of record IDs to update
+        :param xml_path: Path to the XML file.
+        :type xml_path: str
+        :param init_record_ids: List of record IDs to initialize. Can be None to skip initialization.
+        :type init_record_ids: list of str or None
+        :param update_record_ids: List of record IDs to update. Can be None to skip updating.
+        :type update_record_ids: list of str or None
+        :param multi: If False, only the first occurrence of each ID is processed. If True, all occurrences are processed.
+        :type multi: bool
+
+        :return: self
+        :rtype: MigrationHelper
         """
-        # Check if both parameters are not provided or are empty lists
         if not init_record_ids and not update_record_ids:
+            self.logger.warn("No records to update!")
             return self
 
-        # Process initialization if init_record_ids is provided and non-empty
         if init_record_ids:
             self.logger.info("Initializing specific records in {xml_path}".format(xml_path=xml_path))
-            load_data_records(self.cursor, self.module_name, xml_path, init_record_ids, mode='init')
+            load_data_records(self.cursor, self.module_name, xml_path, init_record_ids, mode='init', multi=multi)
             self.logger.info("XML records successfully initialized.")
 
-        # Process update if update_record_ids is provided and non-empty
         if update_record_ids:
             self.logger.info("Updating specific records in {xml_path}".format(xml_path=xml_path))
-            load_data_records(self.cursor, self.module_name, xml_path, update_record_ids, mode='update')
+            load_data_records(self.cursor, self.module_name, xml_path, update_record_ids, mode='update', multi=multi)
             self.logger.info("XML records successfully updated.")
 
         return self
 
-    def update_access_csv(self, model_ids, filename='security/ir.model.access.csv', mode='update'):
-        """Update access rules
+    def update_xml_records_multi(self, xml_path, init_record_ids=None, update_record_ids=None):
+        """Update specific records in an XML file, processing all occurrences of each ID.
 
-        Args:
-            model_ids: List of model IDs to update access rules for
-            filename: Path to the CSV file (default: 'security/ir.model.access.csv')
-            mode: 'init' for new CSV or 'update' (default) for existing CSV
+        :param xml_path: Path to the XML file.
+        :type xml_path: str
+        :param init_record_ids: List of record IDs to initialize. Can be None to skip initialization.
+        :type init_record_ids: list of str or None
+        :param update_record_ids: List of record IDs to update. Can be None to skip updating.
+        :type update_record_ids: list of str or None
+
+        :return: self
+        :rtype: MigrationHelper
         """
+        return self.update_xml_records(xml_path, init_record_ids, update_record_ids, multi=True)
 
+    def update_access_csv(self, model_ids, filename='security/ir.model.access.csv', mode='update'):
+        """Update access rules from a CSV file.
+
+        :param model_ids: List of model IDs to update access rules for.
+        :type model_ids: list of str
+        :param filename: Path to the CSV file (default: 'security/ir.model.access.csv').
+        :type filename: str
+        :param mode: 'init' for initial load or 'update' (default) for updating existing rules.
+        :type mode: str
+
+        :return: self
+        :rtype: MigrationHelper
+        """
         self.logger.info("Updating access rules for models: {model_ids}".format(model_ids=model_ids))
         load_access_rules_from_model_name(self.cursor, self.module_name, model_ids=model_ids, filename=filename, mode=mode)
         self.logger.info("Access rules successfully updated.")
@@ -916,11 +951,15 @@ class MigrationHelper:
         return self
 
     def execute_sql(self, sql_query, params=None):
-        """Execute a raw SQL query
+        """Execute a raw SQL query.
 
-        Args:
-            sql_query: SQL query string
-            params: Parameters for the query
+        :param sql_query: SQL query string.
+        :type sql_query: str
+        :param params: Parameters for the query, or None if no parameters.
+        :type params: list or tuple or None
+
+        :return: self
+        :rtype: MigrationHelper
         """
         self.logger.info("Executing SQL: {}...".format(sql_query[:60]))
         if params:
@@ -928,4 +967,5 @@ class MigrationHelper:
         else:
             self.cursor.execute(sql_query)
         self.logger.info("SQL executed successfully.")
+
         return self
