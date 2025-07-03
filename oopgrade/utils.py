@@ -58,15 +58,27 @@ def parse_requirement_line(line):
     name = req.split('==')[0].split('<=')[0].split('>=')[0].split('<')[0].split('>')[0].strip().lower()
     return (name, marker), req + (' ; ' + marker if marker else '')
 
+def _has_version_spec(req_line):
+    return any(op in req_line for op in ['==', '>=', '<=', '>', '<'])
+
 def clean_requirements_lines(lines):
     requirements_dict = {}
     for line in lines:
         key_marker, full_req = parse_requirement_line(line)
         if not key_marker:
             continue
-        if key_marker not in requirements_dict or len(full_req) > len(requirements_dict[key_marker]):
+        current = requirements_dict.get(key_marker)
+        if not current:
             requirements_dict[key_marker] = full_req
+        else:
+            current_has_version = _has_version_spec(current)
+            new_has_version = _has_version_spec(full_req)
+            if new_has_version and not current_has_version:
+                requirements_dict[key_marker] = full_req
+            elif new_has_version and len(full_req) > len(current):
+                requirements_dict[key_marker] = full_req
     return sorted(requirements_dict.values())
+
 
 
 def pip_install_requirements(requirements_path, silent=False):
