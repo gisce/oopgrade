@@ -82,7 +82,7 @@ def clean_requirements_lines(lines):
             # Prefer the new one if it has a version and the existing one does not
             if has_ver and not current_has_ver:
                 all_versions[name][marker] = full_req
-            # If both have versions, keep the longest (most restrictive)
+            # If both have versions, keep the longest (most specific)
             elif has_ver and len(full_req) > len(existing):
                 all_versions[name][marker] = full_req
 
@@ -90,16 +90,11 @@ def clean_requirements_lines(lines):
     for name, markers in all_versions.items():
         if '' in markers and len(markers) > 1:
             generic = markers['']
-            # Check if all specific markers refer to the same version
-            versions = set()
-            for m, req in markers.items():
-                if m == '':
-                    continue
-                parts = req.split(';', 1)[0]
-                versions.add(parts.strip())
-            # If all marker-specific lines use the same version and it's not equal to the generic one
-            if len(versions) == 1 and generic.strip().split(';')[0] not in versions:
-                # Remove the unmarked (generic) requirement as it's redundant
+            generic_has_ver = _has_version_spec(generic)
+            marker_versions = [req for m, req in markers.items() if m and _has_version_spec(req)]
+
+            # If all marked variants have version specs, and generic has none, drop it
+            if not generic_has_ver and len(marker_versions) == (len(markers) - 1):
                 del markers['']
         cleaned.extend(markers.values())
 
