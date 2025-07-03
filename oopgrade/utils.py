@@ -58,27 +58,52 @@ def parse_requirement_line(line):
     name = req.split('==')[0].split('<=')[0].split('>=')[0].split('<')[0].split('>')[0].strip().lower()
     return (name, marker), req + (' ; ' + marker if marker else '')
 
+
 def _has_version_spec(req_line):
     return any(op in req_line for op in ['==', '>=', '<=', '>', '<'])
 
+
 def clean_requirements_lines(lines):
-    requirements_dict = {}
+    from collections import defaultdict
+    all_versions = defaultdict(dict)  # key = package name (lowercase), value = {marker: line}
+
     for line in lines:
         key_marker, full_req = parse_requirement_line(line)
         if not key_marker:
             continue
-        current = requirements_dict.get(key_marker)
-        if not current:
-            requirements_dict[key_marker] = full_req
-        else:
-            current_has_version = _has_version_spec(current)
-            new_has_version = _has_version_spec(full_req)
-            if new_has_version and not current_has_version:
-                requirements_dict[key_marker] = full_req
-            elif new_has_version and len(full_req) > len(current):
-                requirements_dict[key_marker] = full_req
-    return sorted(requirements_dict.values())
+        name, marker = key_marker
+        existing = all_versions[name].get(marker)
+        has_ver = _has_version_spec(full_req)
 
+        if not existing:
+            all_versions[name][marker] = full_req
+        else:
+            current_has_ver = _has_version_spec(existing)
+            # Prefer the new one if it has a version and the existing one does not
+            if has_ver and not current_has_ver:
+                all_versions[name][marker] = full_req
+            # If both have versions, keep the longest (most restrictive)
+            elif has_ver and len(full_req) > len(existing):
+                all_versions[name][marker] = full_req
+
+    cleaned = []
+    for name, markers in all_versions.items():
+        if '' in markers and len(markers) > 1:
+            generic = markers['']
+            # Check if all specific markers refer to the same version
+            versions = set()
+            for m, req in markers.items():
+                if m == '':
+                    continue
+                parts = req.split(';', 1)[0]
+                versions.add(parts.strip())
+            # If all marker-specific lines use the same version and it's not equal to the generic one
+            if len(versions) == 1 and generic.strip().split(';')[0] not in versions:
+                # Remove the unmarked (generic) requirement as it's redundant
+                del markers['']
+        cleaned.extend(markers.values())
+
+    return sorted(cleaned)
 
 
 def pip_install_requirements(requirements_path, silent=False):
