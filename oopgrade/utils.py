@@ -79,3 +79,34 @@ def install_requirements(module, addons_path, silent=False, done=None):
             pip_install_requirements(req, silent)
         return modules_requirements
     return [module]
+
+
+def gather_requirements_files(modules, addons_path):
+    req_files = []
+    seen = set()
+    for module in modules:
+        dependencies = get_dependencies(module, addons_path)
+        dependencies.append(module)
+        for mod in dependencies:
+            if mod in seen:
+                continue
+            seen.add(mod)
+            req_path = os.path.join(addons_path, mod, 'requirements.txt')
+            if os.path.exists(req_path):
+                req_files.append(req_path)
+    return req_files
+
+def unify_and_install_requirements(modules, addons_path):
+    import tempfile
+    req_files = gather_requirements_files(modules, addons_path)
+    all_reqs = set()
+    for path in req_files:
+        with open(path, 'r') as f:
+            for line in f:
+                stripped = line.strip()
+                if stripped and not stripped.startswith('#'):
+                    all_reqs.add(stripped)
+    with tempfile.NamedTemporaryFile('w+', delete=False) as tmp_file:
+        tmp_file.write('\n'.join(sorted(all_reqs)))
+        tmp_file.flush()
+        pip_install_requirements(tmp_file.name, silent=False)
