@@ -48,6 +48,27 @@ def get_dependencies(module, addons_path=None, deps=None):
     return list(set(deps))
 
 
+def parse_requirement_line(line):
+    line = line.strip()
+    if not line or line.startswith('#'):
+        return None, None
+    parts = line.split(';', 1)
+    req = parts[0].strip()
+    marker = parts[1].strip() if len(parts) > 1 else ''
+    key = req.split('==')[0].split('<=')[0].split('>=')[0].split('<')[0].split('>')[0].strip()
+    return (key, marker), req + (' ; ' + marker if marker else '')
+
+def clean_requirements_lines(lines):
+    requirements_dict = {}
+    for line in lines:
+        key_marker, full_req = parse_requirement_line(line)
+        if not key_marker:
+            continue
+        if key_marker not in requirements_dict or len(full_req) > len(requirements_dict[key_marker]):
+            requirements_dict[key_marker] = full_req
+    return sorted(requirements_dict.values())
+
+
 def pip_install_requirements(requirements_path, silent=False):
     subprocess_kwargs = {}
     if silent:
@@ -99,14 +120,12 @@ def gather_requirements_files(modules, addons_path):
 def unify_and_install_requirements(modules, addons_path):
     import tempfile
     req_files = gather_requirements_files(modules, addons_path)
-    all_reqs = set()
+    raw_lines = []
     for path in req_files:
         with open(path, 'r') as f:
-            for line in f:
-                stripped = line.strip()
-                if stripped and not stripped.startswith('#'):
-                    all_reqs.add(stripped)
+            raw_lines.extend(f.readlines())
+    cleaned_lines = clean_requirements_lines(raw_lines)
     with tempfile.NamedTemporaryFile('w+', delete=False) as tmp_file:
-        tmp_file.write('\n'.join(sorted(all_reqs)))
+        tmp_file.write('\n'.join(cleaned_lines))
         tmp_file.flush()
         pip_install_requirements(tmp_file.name, silent=False)
