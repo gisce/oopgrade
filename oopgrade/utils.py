@@ -55,8 +55,8 @@ def parse_requirement_line(line):
     parts = line.split(';', 1)
     req = parts[0].strip()
     marker = parts[1].strip() if len(parts) > 1 else ''
-    key = req.split('==')[0].split('<=')[0].split('>=')[0].split('<')[0].split('>')[0].strip()
-    return (key, marker), req + (' ; ' + marker if marker else '')
+    name = req.split('==')[0].split('<=')[0].split('>=')[0].split('<')[0].split('>')[0].strip().lower()
+    return (name, marker), req + (' ; ' + marker if marker else '')
 
 def clean_requirements_lines(lines):
     requirements_dict = {}
