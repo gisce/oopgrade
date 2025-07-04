@@ -5,6 +5,7 @@ if six.PY3:
     from builtins import range
 import os
 import logging
+from tqdm import tqdm
 
 logger = logging.getLogger('openerp.oopgrade')
 
@@ -359,7 +360,7 @@ def set_stored_function(cr, obj, fields):
             for i in range(0, len(l), n):
                 yield l[i:i + n]
 
-        for ids in chunks(ids_lst, 100):
+        for ids in tqdm(chunks(ids_lst, 100)):
             res = field.get(cr, obj, ids, k, 1, {})
             for key, val in list(res.items()):
                 if field._multi:
