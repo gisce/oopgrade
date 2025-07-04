@@ -179,7 +179,7 @@ def gather_requirements_files(modules, addons_path):
                 req_files.append(req_path)
     return req_files
 
-def unify_and_install_requirements(modules, addons_path):
+def unify_and_install_requirements(modules, addons_path, silent=False):
     import tempfile
     req_files = gather_requirements_files(modules, addons_path)
     raw_lines = []
@@ -190,4 +190,4 @@ def unify_and_install_requirements(modules, addons_path):
     with tempfile.NamedTemporaryFile('w+', delete=False) as tmp_file:
         tmp_file.write('\n'.join(cleaned_lines))
         tmp_file.flush()
-        pip_install_requirements(tmp_file.name, silent=False)
+        pip_install_requirements(tmp_file.name, silent)

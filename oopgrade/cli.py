@@ -71,7 +71,7 @@ def install(conf, unify):
 
     if unify:
         click.echo("Unifying all requirements and installing...")
-        unify_and_install_requirements(modules, conf['addons_path'])
+        unify_and_install_requirements(modules, conf['addons_path'], silent=True)
     else:
         done = []
         for module in tqdm(modules, desc='Installing'):
