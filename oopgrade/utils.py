@@ -62,10 +62,20 @@ def parse_requirement_line(line):
 def _has_version_spec(req_line):
     return any(op in req_line for op in ['==', '>=', '<=', '>', '<'])
 
+def _get_version_part(req_line):
+    return req_line.split(';', 1)[0].strip()
+
+def _extract_spec_version(spec):
+    for op in ['==', '<=', '>=', '<', '>']:
+        if op in spec:
+            parts = spec.split(op)
+            if len(parts) == 2:
+                return op.strip(), parts[1].strip()
+    return '', ''
 
 def clean_requirements_lines(lines):
     from collections import defaultdict
-    all_versions = defaultdict(dict)  # key = package name (lowercase), value = {marker: line}
+    all_versions = defaultdict(dict)
 
     for line in lines:
         key_marker, full_req = parse_requirement_line(line)
@@ -79,23 +89,43 @@ def clean_requirements_lines(lines):
             all_versions[name][marker] = full_req
         else:
             current_has_ver = _has_version_spec(existing)
-            # Prefer the new one if it has a version and the existing one does not
             if has_ver and not current_has_ver:
                 all_versions[name][marker] = full_req
-            # If both have versions, keep the longest (most specific)
             elif has_ver and len(full_req) > len(existing):
                 all_versions[name][marker] = full_req
 
     cleaned = []
     for name, markers in all_versions.items():
         if '' in markers and len(markers) > 1:
-            generic = markers['']
-            generic_has_ver = _has_version_spec(generic)
-            marker_versions = [req for m, req in markers.items() if m and _has_version_spec(req)]
+            generic_line = markers['']
+            generic_ver = _get_version_part(generic_line)
+            generic_has_ver = _has_version_spec(generic_line)
 
-            # If all marked variants have version specs, and generic has none, drop it
-            if not generic_has_ver and len(marker_versions) == (len(markers) - 1):
+            specific_lines = [
+                _get_version_part(req)
+                for m, req in markers.items()
+                if m and _has_version_spec(req)
+            ]
+            specific_versions = set(specific_lines)
+
+            if not generic_has_ver and len(specific_lines) == len(markers) - 1:
                 del markers['']
+            elif generic_has_ver and len(specific_versions) > 0:
+                # Try to detect same version equality
+                spec_ops = set()
+                spec_versions = set()
+                for ver in specific_versions:
+                    op, v = _extract_spec_version(ver)
+                    spec_ops.add(op)
+                    spec_versions.add(v)
+                gop, gv = _extract_spec_version(generic_ver)
+                if (
+                    len(spec_ops) == 1 and spec_ops == set(['==']) and
+                    len(spec_versions) == 1 and
+                    gop == '<=' and gv in spec_versions
+                ):
+                    del markers['']
+
         cleaned.extend(markers.values())
 
     return sorted(cleaned)
