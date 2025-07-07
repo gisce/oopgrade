@@ -356,7 +356,6 @@ def set_stored_function(cr, obj, fields):
     cr.execute('select id from ' + obj._table)
     ids_lst = [x[0] for x in cr.fetchall()]
     logger.info("storing computed values for %s objects" % len(ids_lst))
-    start = datetime.now()
 
     def chunks(l, n):
         """Yield successive n-sized chunks from l."""
@@ -369,24 +368,19 @@ def set_stored_function(cr, obj, fields):
         ss = field._symbol_set
         update_query = 'UPDATE "%s" SET "%s"=%s WHERE id=%%s' % (
             obj._table, k, ss[0])
-        cr.execute('select id from ' + obj._table)
-        ids_lst = [x[0] for x in cr.fetchall()]
-        logger.info("storing computed values for %s objects" % len(ids_lst))
         start = datetime.now()
         for ids in tqdm(chunks(ids_lst, 100)):
             res = field.get(cr, obj, ids, k, 1, {})
             for key, val in list(res.items()):
-                # if val is a many2one, just write the ID
-                if type(val) == tuple:
-                    val = val[0]
-                if (val is not False) or (type(val) != bool):
-                    cr.execute(update_query, (ss[1](val), key))
+                _update_stored_field_function(cr, key, update_query, ss, val)
         logger.info("stored in {0}".format(datetime.now() - start))
 
     for fields in multi_fields.values():
+        start = datetime.now()
         logger.info("Storing computed values of fields.function: [%s]", ", ".join(fields))
+        field = obj._columns[fields[0]]
         for ids in tqdm(chunks(ids_lst, 100)):
-            res = field.get(cr, obj, ids, k, 1, {})
+            res = field.get(cr, obj, ids, fields[0], 1, {})
             for key, vals in list(res.items()):
                 for ff in fields:
                     field = obj._columns[ff]
@@ -394,12 +388,14 @@ def set_stored_function(cr, obj, fields):
                     update_query = 'UPDATE "%s" SET "%s"=%s WHERE id=%%s' % (
                         obj._table, ff, ss[0])
                     val = vals[ff]
-                    # if val is a many2one, just write the ID
-                    if type(val) == tuple:
-                        val = val[0]
-                    if (val is not False) or (type(val) != bool):
-                        cr.execute(update_query, (ss[1](val), key))
+                    _update_stored_field_function(cr, key, update_query, ss, val)
         logger.info("stored in {0}".format(datetime.now() - start))
+
+def _update_stored_field_function(cr, key, update_query, ss, val):
+    if type(val) == tuple:
+        val = val[0]
+    if (val is not False) or (type(val) != bool):
+        cr.execute(update_query, (ss[1](val), key))
 
 def delete_model_workflow(cr, model):
     """ 
