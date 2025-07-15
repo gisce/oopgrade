@@ -6,6 +6,7 @@ if six.PY3:
 import os
 import logging
 from tqdm import tqdm
+from six import string_types
 
 logger = logging.getLogger('openerp.oopgrade')
 
@@ -941,6 +942,32 @@ class MigrationHelper:
 
         return self
 
+    def delete_xml_records(self, record_names):
+        """Delete the records with `record_names` names from an XML file.
+
+        :param record_names: Names of the records to delete.
+        :type record_names: list of str
+
+        :return: self
+        :rtype: MigrationHelper
+        """
+
+        if isinstance(record_names, string_types):
+            record_names = [record_names]
+        elif not isinstance(record_names, (list, tuple)):
+            raise TypeError("record_names must be a string or a list/tuple of strings")
+
+        names = ', '.join(record_names)
+        self.logger.info("Deleting record(s) '{names}'".format(names=names))
+        try:
+            delete_record(self.cursor, self.module_name, record_names)
+            self.logger.info("Record(s) '{names}' successfully deleted.".format(names=names))
+        except Exception as err:
+            self.logger.error("Error deleting record(s) '{names}': {e}".format(names=names, e=err))
+            raise
+
+        return self
+
     def update_xml_records_multi(self, xml_path, init_record_ids=None, update_record_ids=None):
         """Update specific records in an XML file, processing all occurrences of each ID.
 
@@ -992,5 +1019,32 @@ class MigrationHelper:
         else:
             self.cursor.execute(sql_query)
         self.logger.info("SQL executed successfully.")
+
+        return self
+
+    def load_translations(self, lang, name, field_type, res_id, source, value):
+        """
+        Load translations to the database.
+
+        :param lang: Language code
+        :type lang: str
+        :param name: Name of the translation
+        :type name: str
+        :param field_type: Type of the translation
+        :type field_type: str
+        :param res_id: ID of the resource
+        :type res_id: str
+        :param source: Source of the translation
+        :type source: str
+        :param value: Value of the translation
+        :type value: str
+
+        :return: self
+        :rtype: MigrationHelper
+        """
+
+        self.logger.info("Loading {} translation for {} of type {} with res_id {} and source {} -> {})".format(lang, name, field_type, res_id, source, value))
+        load_translation(self.cursor, lang=lang, name=name, type=field_type, res_id=res_id, src=source, value=value)
+        self.logger.info("Translation successfully loaded")
 
         return self
