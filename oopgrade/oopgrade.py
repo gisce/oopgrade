@@ -994,3 +994,30 @@ class MigrationHelper:
         self.logger.info("SQL executed successfully.")
 
         return self
+
+    def load_translations(self, lang, name, field_type, res_id, source, value):
+        """
+        Load translations to the database.
+
+        :param lang: Language code
+        :type lang: str
+        :param name: Name of the translation
+        :type name: str
+        :param field_type: Type of the translation
+        :type field_type: str
+        :param res_id: ID of the resource
+        :type res_id: str
+        :param source: Source of the translation
+        :type source: str
+        :param value: Value of the translation
+        :type value: str
+
+        :return: self
+        :rtype: MigrationHelper
+        """
+
+        self.logger.info("Loading {} translation for {} of type {} with res_id {} and source {} -> {})".format(lang, name, field_type, res_id, source, value))
+        load_translation(self.cursor, lang=lang, name=name, type=field_type, res_id=res_id, src=source, value=value)
+        self.logger.info("Translation successfully loaded")
+
+        return self
