@@ -5,6 +5,7 @@ if six.PY3:
     from builtins import range
 import os
 import logging
+from tqdm import tqdm
 
 logger = logging.getLogger('openerp.oopgrade')
 
@@ -342,35 +343,59 @@ def set_stored_function(cr, obj, fields):
     :param fields: list of fields
     """
     from datetime import datetime
-
+    multi_fields = {}
+    non_multi_fields = []
     for k in fields:
+        field = obj._columns[k]
+        if field._multi:
+            multi_fields.setdefault(field._multi, [])
+            multi_fields[field._multi].append(k)
+        else:
+            non_multi_fields.append(k)
+
+    cr.execute('select id from ' + obj._table)
+    ids_lst = [x[0] for x in cr.fetchall()]
+    logger.info("storing computed values for %s objects" % len(ids_lst))
+
+    def chunks(l, n):
+        """Yield successive n-sized chunks from l."""
+        for i in range(0, len(l), n):
+            yield l[i:i + n]
+
+    for k in non_multi_fields:
         logger.info("storing computed values of fields.function '%s'" % (k,))
         field = obj._columns[k]
         ss = field._symbol_set
         update_query = 'UPDATE "%s" SET "%s"=%s WHERE id=%%s' % (
             obj._table, k, ss[0])
-        cr.execute('select id from ' + obj._table)
-        ids_lst = [x[0] for x in cr.fetchall()]
-        logger.info("storing computed values for %s objects" % len(ids_lst))
         start = datetime.now()
-
-        def chunks(l, n):
-            """Yield successive n-sized chunks from l."""
-            for i in range(0, len(l), n):
-                yield l[i:i + n]
-
-        for ids in chunks(ids_lst, 100):
+        for ids in tqdm(chunks(ids_lst, 100)):
             res = field.get(cr, obj, ids, k, 1, {})
             for key, val in list(res.items()):
-                if field._multi:
-                    val = val[k]
-                # if val is a many2one, just write the ID
-                if type(val) == tuple:
-                    val = val[0]
-                if (val is not False) or (type(val) != bool):
-                    cr.execute(update_query, (ss[1](val), key))
+                _update_stored_field_function(cr, key, update_query, ss, val)
         logger.info("stored in {0}".format(datetime.now() - start))
 
+    for fields in multi_fields.values():
+        start = datetime.now()
+        logger.info("Storing computed values of fields.function: [%s]", ", ".join(fields))
+        field = obj._columns[fields[0]]
+        for ids in tqdm(chunks(ids_lst, 100)):
+            res = field.get(cr, obj, ids, fields[0], 1, {})
+            for key, vals in list(res.items()):
+                for ff in fields:
+                    field = obj._columns[ff]
+                    ss = field._symbol_set
+                    update_query = 'UPDATE "%s" SET "%s"=%s WHERE id=%%s' % (
+                        obj._table, ff, ss[0])
+                    val = vals[ff]
+                    _update_stored_field_function(cr, key, update_query, ss, val)
+        logger.info("stored in {0}".format(datetime.now() - start))
+
+def _update_stored_field_function(cr, key, update_query, ss, val):
+    if type(val) == tuple:
+        val = val[0]
+    if (val is not False) or (type(val) != bool):
+        cr.execute(update_query, (ss[1](val), key))
 
 def delete_model_workflow(cr, model):
     """ 
