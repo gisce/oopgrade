@@ -941,6 +941,32 @@ class MigrationHelper:
 
         return self
 
+    def delete_xml_records(self, record_names):
+        """Delete the records with `record_names` names from an XML file.
+
+        :param record_names: Names of the records to delete.
+        :type record_names: list of str
+
+        :return: self
+        :rtype: MigrationHelper
+        """
+
+        if isinstance(record_names, string_types):
+            record_names = [record_names]
+        elif not isinstance(record_names, (list, tuple)):
+            raise TypeError("record_names must be a string or a list/tuple of strings")
+
+        names = ', '.join(record_names)
+        self.logger.info("Deleting record(s) '{names}'".format(names=names))
+        try:
+            delete_record(self.cursor, self.module_name, record_names)
+            self.logger.info("Record(s) '{names}' successfully deleted.".format(names=names))
+        except Exception as err:
+            self.logger.error("Error deleting record(s) '{names}': {e}".format(names=names, e=err))
+            raise
+
+        return self
+
     def update_xml_records_multi(self, xml_path, init_record_ids=None, update_record_ids=None):
         """Update specific records in an XML file, processing all occurrences of each ID.
 
