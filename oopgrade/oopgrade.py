@@ -34,6 +34,7 @@ __all__ = [
     'delete_record',
     'load_translation',
     'MigrationHelper',
+    'update_module_from_model_data',
 ]
 
 
@@ -735,6 +736,17 @@ def update_module_names(cr, namespec):
                  "WHERE module = %s ")
         logged_query(cr, query, (new_name, old_name))
 
+def update_module_from_model_data(cr, target_module, list_of_records):
+    """
+    Updates the specified models with a new module name
+
+    :param target_module: name of the module wanted to set in the models
+    :param list_of_records: list of models wanted to update with the new module
+    """
+    for record in list_of_records:
+        query = ("UPDATE ir_model_data SET module = %s "
+                 "WHERE name = %s")
+        logged_query(cr, query, (target_module, record))
 
 def add_ir_model_fields(cr, columnspec):
     """
