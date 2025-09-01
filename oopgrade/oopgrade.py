@@ -736,17 +736,19 @@ def update_module_names(cr, namespec):
                  "WHERE module = %s ")
         logged_query(cr, query, (new_name, old_name))
 
-def update_module_from_model_data(cr, target_module, list_of_records):
+def update_module_from_model_data(cr, model_spec, target_module):
     """
     Updates the specified models with a new module name
 
+    :param model_spec: list of tuples composed of ([model names], old module name), where the model names are a list
     :param target_module: name of the module wanted to set in the models
-    :param list_of_records: list of models wanted to update with the new module
     """
-    for record in list_of_records:
-        query = ("UPDATE ir_model_data SET module = %s "
-                 "WHERE name = %s")
-        logged_query(cr, query, (target_module, record))
+    for model_list, old_module in model_spec:
+        query = ("UPDATE ir_model_data SET module = %(target_module)s "
+                 "WHERE name = ANY(%(model_list)s) AND module = %(old_module)s")
+        logged_query(cr, query, {
+            "target_module": target_module, "model_list": model_list, "old_module": old_module
+        })
 
 def add_ir_model_fields(cr, columnspec):
     """
