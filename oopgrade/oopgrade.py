@@ -7,6 +7,7 @@ import os
 import logging
 from tqdm import tqdm
 import pooler
+from six import string_types
 
 logger = logging.getLogger('openerp.oopgrade')
 
@@ -34,6 +35,7 @@ __all__ = [
     'delete_record',
     'load_translation',
     'MigrationHelper',
+    'update_module_from_model_data',
 ]
 
 
@@ -344,35 +346,59 @@ def set_stored_function(cr, obj, fields):
     :param fields: list of fields
     """
     from datetime import datetime
-
+    multi_fields = {}
+    non_multi_fields = []
     for k in fields:
+        field = obj._columns[k]
+        if field._multi:
+            multi_fields.setdefault(field._multi, [])
+            multi_fields[field._multi].append(k)
+        else:
+            non_multi_fields.append(k)
+
+    cr.execute('select id from ' + obj._table)
+    ids_lst = [x[0] for x in cr.fetchall()]
+    logger.info("storing computed values for %s objects" % len(ids_lst))
+
+    def chunks(l, n):
+        """Yield successive n-sized chunks from l."""
+        for i in range(0, len(l), n):
+            yield l[i:i + n]
+
+    for k in non_multi_fields:
         logger.info("storing computed values of fields.function '%s'" % (k,))
         field = obj._columns[k]
         ss = field._symbol_set
         update_query = 'UPDATE "%s" SET "%s"=%s WHERE id=%%s' % (
             obj._table, k, ss[0])
-        cr.execute('select id from ' + obj._table)
-        ids_lst = [x[0] for x in cr.fetchall()]
-        logger.info("storing computed values for %s objects" % len(ids_lst))
         start = datetime.now()
-
-        def chunks(l, n):
-            """Yield successive n-sized chunks from l."""
-            for i in range(0, len(l), n):
-                yield l[i:i + n]
-
-        for ids in chunks(ids_lst, 100):
+        for ids in tqdm(chunks(ids_lst, 100)):
             res = field.get(cr, obj, ids, k, 1, {})
             for key, val in list(res.items()):
-                if field._multi:
-                    val = val[k]
-                # if val is a many2one, just write the ID
-                if type(val) == tuple:
-                    val = val[0]
-                if (val is not False) or (type(val) != bool):
-                    cr.execute(update_query, (ss[1](val), key))
+                _update_stored_field_function(cr, key, update_query, ss, val)
         logger.info("stored in {0}".format(datetime.now() - start))
 
+    for fields in multi_fields.values():
+        start = datetime.now()
+        logger.info("Storing computed values of fields.function: [%s]", ", ".join(fields))
+        field = obj._columns[fields[0]]
+        for ids in tqdm(chunks(ids_lst, 100)):
+            res = field.get(cr, obj, ids, fields[0], 1, {})
+            for key, vals in list(res.items()):
+                for ff in fields:
+                    field = obj._columns[ff]
+                    ss = field._symbol_set
+                    update_query = 'UPDATE "%s" SET "%s"=%s WHERE id=%%s' % (
+                        obj._table, ff, ss[0])
+                    val = vals[ff]
+                    _update_stored_field_function(cr, key, update_query, ss, val)
+        logger.info("stored in {0}".format(datetime.now() - start))
+
+def _update_stored_field_function(cr, key, update_query, ss, val):
+    if type(val) == tuple:
+        val = val[0]
+    if (val is not False) or (type(val) != bool):
+        cr.execute(update_query, (ss[1](val), key))
 
 def delete_model_workflow(cr, model):
     """ 
@@ -711,6 +737,19 @@ def update_module_names(cr, namespec):
                  "WHERE module = %s ")
         logged_query(cr, query, (new_name, old_name))
 
+def update_module_from_model_data(cr, model_spec, target_module):
+    """
+    Updates the specified models with a new module name
+
+    :param model_spec: list of tuples composed of ([model names], old module name), where the model names are a list
+    :param target_module: name of the module wanted to set in the models
+    """
+    for model_list, old_module in model_spec:
+        query = ("UPDATE ir_model_data SET module = %(target_module)s "
+                 "WHERE name = ANY(%(model_list)s) AND module = %(old_module)s")
+        logged_query(cr, query, {
+            "target_module": target_module, "model_list": model_list, "old_module": old_module
+        })
 
 def add_ir_model_fields(cr, columnspec):
     """
@@ -922,6 +961,32 @@ class MigrationHelper:
 
         return self
 
+    def delete_xml_records(self, record_names):
+        """Delete the records with `record_names` names from an XML file.
+
+        :param record_names: Names of the records to delete.
+        :type record_names: list of str
+
+        :return: self
+        :rtype: MigrationHelper
+        """
+
+        if isinstance(record_names, string_types):
+            record_names = [record_names]
+        elif not isinstance(record_names, (list, tuple)):
+            raise TypeError("record_names must be a string or a list/tuple of strings")
+
+        names = ', '.join(record_names)
+        self.logger.info("Deleting record(s) '{names}'".format(names=names))
+        try:
+            delete_record(self.cursor, self.module_name, record_names)
+            self.logger.info("Record(s) '{names}' successfully deleted.".format(names=names))
+        except Exception as err:
+            self.logger.error("Error deleting record(s) '{names}': {e}".format(names=names, e=err))
+            raise
+
+        return self
+
     def update_xml_records_multi(self, xml_path, init_record_ids=None, update_record_ids=None):
         """Update specific records in an XML file, processing all occurrences of each ID.
 
@@ -1026,5 +1091,31 @@ class MigrationHelper:
                 WHERE name = %s AND module = %s
             """
             self.execute_sql(delete_imd_query, (record_id, self.module_name))
+
+        return self
+    def load_translations(self, lang, name, field_type, res_id, source, value):
+        """
+        Load translations to the database.
+
+        :param lang: Language code
+        :type lang: str
+        :param name: Name of the translation
+        :type name: str
+        :param field_type: Type of the translation
+        :type field_type: str
+        :param res_id: ID of the resource
+        :type res_id: str
+        :param source: Source of the translation
+        :type source: str
+        :param value: Value of the translation
+        :type value: str
+
+        :return: self
+        :rtype: MigrationHelper
+        """
+
+        self.logger.info("Loading {} translation for {} of type {} with res_id {} and source {} -> {})".format(lang, name, field_type, res_id, source, value))
+        load_translation(self.cursor, lang=lang, name=name, type=field_type, res_id=res_id, src=source, value=value)
+        self.logger.info("Translation successfully loaded")
 
         return self
