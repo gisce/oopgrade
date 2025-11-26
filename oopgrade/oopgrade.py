@@ -5,6 +5,8 @@ if six.PY3:
     from builtins import range
 import os
 import logging
+from tqdm import tqdm
+import pooler
 
 logger = logging.getLogger('openerp.oopgrade')
 
@@ -840,6 +842,10 @@ class MigrationHelper:
         self.module_name = module_name
         self.pool = None
 
+        if not hasattr(self, 'pool') or self.pool is None:
+            self.logger.info("Creating pooler")
+            self.pool = pooler.get_pool(self.cursor.dbname)
+
     def init_model(self, model_name):
         """Initialize a model’s database table.
 
@@ -967,5 +973,58 @@ class MigrationHelper:
         else:
             self.cursor.execute(sql_query)
         self.logger.info("SQL executed successfully.")
+
+        return self
+
+    def delete_xml_records(self, record_ids):
+        """
+        Delete records defined by XML ids: remove their entry from ir_model_data and
+        delete the actual record in the corresponding model table.
+        """
+        for record_id in tqdm(record_ids):
+            # Obtain model and res id through ir_model_data
+            query = """
+                SELECT model, res_id
+                FROM ir_model_data
+                WHERE name = %s AND module = %s
+            """
+            self.cursor.execute(query, (record_id, self.module_name))
+            row = self.cursor.fetchone()
+
+            if not row:
+                self.logger.warning("Record ID '%s' not found in ir_model_data.", record_id)
+                continue
+
+            model, res_id = row
+
+            # Obtain real table name, it might be different than model name
+            model_obj = self.pool.get(model)
+            if not model_obj:
+                self.logger.error("Model '%s' not found in pool.", model)
+                continue
+
+            table_name = model_obj._table
+
+            self.logger.info(
+                "Deleting record %s: model=%s, res_id=%s", record_id, model, res_id
+            )
+
+            # Delete real id. If record is still referenced by other records, dont do anything
+            delete_model_query = "DELETE FROM {} WHERE id = %s".format(table_name)
+            try:
+                self.execute_sql(delete_model_query, (res_id,))
+                self.logger.info("Record deleted: %s.id=%s", table_name, res_id)
+            except Exception as e:
+                self.logger.warning(
+                    "Could not delete %s.id=%s. It might still be referenced by other records. Error: %s",
+                    table_name, res_id, e
+                )
+
+            # Delete ir_model_data
+            delete_imd_query = """
+                DELETE FROM ir_model_data
+                WHERE name = %s AND module = %s
+            """
+            self.execute_sql(delete_imd_query, (record_id, self.module_name))
 
         return self
