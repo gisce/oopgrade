@@ -863,11 +863,7 @@ def load_translation(cursor, lang, name, type, res_id, src, value):
 
 
 class MigrationHelper:
-class MigrationHelper(object):
     """Helper class for GISCE ERP migrations."""
-
-    def __new__(cls, *args, **kwargs):
-        return super(MigrationHelper, cls).__new__(cls)
 
     def __init__(self, cursor, module_name, logger_name='openerp.migration'):
         """Initialize the migration helper.
