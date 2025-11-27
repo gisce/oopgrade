@@ -881,9 +881,14 @@ class MigrationHelper:
         self.module_name = module_name
         self.pool = None
 
+    def _create_pool(self):
+        import pooler
+        # Initialize the pool if it hasn't been set up yet.
         if not hasattr(self, 'pool') or self.pool is None:
-            self.logger.info("Creating pooler")
+            self.logger.info("Creating pool")
             self.pool = pooler.get_pool(self.cursor.dbname)
+        else:
+            self.logger.info("Pool already created")
 
     def init_model(self, model_name):
         """Initialize a model’s database table.
@@ -894,22 +899,28 @@ class MigrationHelper:
         :return: self
         :rtype: MigrationHelper
         """
-        import pooler
+        self._create_pool()
 
-        # Initialize the pool if it hasn't been set up yet.
-        if not hasattr(self, 'pool') or self.pool is None:
-            self.logger.info("Creating pooler")
-            self.pool = pooler.get_pool(self.cursor.dbname)
-
-        table_name = model_name.replace('.', '_')
-        is_new_table = not table_exists(self.cursor, table_name)
-
-        model = self.pool.get(model_name)
-        self.logger.info("{action} table: {model_name}".format(action="Creating" if is_new_table else "Updating", model_name=model_name))
-        model._auto_init(self.cursor, context={'module': self.module_name})
+        model_o = self.pool.get(model_name)
+        is_new_table = not table_exists(self.cursor, model_o._table)
+        self.logger.info("{action} table: {table_name}".format(action="Creating" if is_new_table else "Updating", table_name=model_o._table))
+        model_o._auto_init(self.cursor, context={'module': self.module_name})
         self.logger.info("Table {action} successfully.".format(action="created" if is_new_table else "updated"))
 
         return self
+
+    def get_model(self, model_name):
+        """Get a model from the pool.
+
+        :param model_name: Full name of the model (e.g. 'wizard.accions.massives.giscedata.lot').
+        :type model_name: str
+
+        :return: Model object.
+        :rtype: any
+        """
+        self._create_pool()
+
+        return self.pool.get(model_name)
 
     def update_xml(self, xml_path, mode='update'):
         """Update an entire XML file.
