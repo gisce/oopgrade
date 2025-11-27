@@ -6,7 +6,6 @@ if six.PY3:
 import os
 import logging
 from tqdm import tqdm
-import pooler
 from six import string_types
 
 logger = logging.getLogger('openerp.oopgrade')
