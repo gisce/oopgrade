@@ -998,6 +998,52 @@ class MigrationHelper:
 
         return self
 
+    def delete_xml_records_by_ids(self, record_ids):
+        """
+        Delete records defined by XML ids: remove their entry from ir_model_data and
+        delete the actual record in the corresponding model table.
+        """
+        self._create_pool()
+
+        for record_id in tqdm(record_ids):
+            # Obtain model and res id through ir_model_data
+            query = "SELECT model, res_id FROM ir_model_data WHERE name = %s AND module = %s"
+            self.cursor.execute(query, (record_id, self.module_name))
+            row = self.cursor.fetchone()
+
+            if not row:
+                self.logger.warning("Record ID '%s' not found in ir_model_data.", record_id)
+                continue
+
+            model, res_id = row
+
+            # Obtain real table name, it might be different than model name
+            model_obj = self.pool.get(model)
+            if not model_obj:
+                self.logger.error("Model '%s' not found in pool.", model)
+                continue
+
+            table_name = model_obj._table
+
+            self.logger.info("Deleting record %s: model=%s, res_id=%s", record_id, model, res_id)
+
+            # Delete real id. If record is still referenced by other records, dont do anything
+            delete_model_query = "DELETE FROM {} WHERE id = %s".format(table_name)
+            try:
+                self.execute_sql(delete_model_query, (res_id,))
+                self.logger.info("Record deleted: %s.id=%s", table_name, res_id)
+            except Exception as e:
+                self.logger.error(
+                    "Could not delete %s.id=%s. It might still be referenced by other records. Error: %s",
+                    table_name, res_id, e
+                )
+
+            # Delete ir_model_data
+            delete_imd_query = "DELETE FROM ir_model_data WHERE name = %s AND module = %s"
+            self.execute_sql(delete_imd_query, (record_id, self.module_name))
+
+        return self
+
     def update_xml_records_multi(self, xml_path, init_record_ids=None, update_record_ids=None):
         """Update specific records in an XML file, processing all occurrences of each ID.
 
@@ -1052,58 +1098,6 @@ class MigrationHelper:
 
         return self
 
-    def delete_xml_records(self, record_ids):
-        """
-        Delete records defined by XML ids: remove their entry from ir_model_data and
-        delete the actual record in the corresponding model table.
-        """
-        for record_id in tqdm(record_ids):
-            # Obtain model and res id through ir_model_data
-            query = """
-                SELECT model, res_id
-                FROM ir_model_data
-                WHERE name = %s AND module = %s
-            """
-            self.cursor.execute(query, (record_id, self.module_name))
-            row = self.cursor.fetchone()
-
-            if not row:
-                self.logger.warning("Record ID '%s' not found in ir_model_data.", record_id)
-                continue
-
-            model, res_id = row
-
-            # Obtain real table name, it might be different than model name
-            model_obj = self.pool.get(model)
-            if not model_obj:
-                self.logger.error("Model '%s' not found in pool.", model)
-                continue
-
-            table_name = model_obj._table
-
-            self.logger.info(
-                "Deleting record %s: model=%s, res_id=%s", record_id, model, res_id
-            )
-
-            # Delete real id. If record is still referenced by other records, dont do anything
-            delete_model_query = "DELETE FROM {} WHERE id = %s".format(table_name)
-            try:
-                self.execute_sql(delete_model_query, (res_id,))
-                self.logger.info("Record deleted: %s.id=%s", table_name, res_id)
-            except Exception as e:
-                self.logger.warning(
-                    "Could not delete %s.id=%s. It might still be referenced by other records. Error: %s",
-                    table_name, res_id, e
-                )
-
-            # Delete ir_model_data
-            delete_imd_query = """
-                DELETE FROM ir_model_data
-                WHERE name = %s AND module = %s
-            """
-            self.execute_sql(delete_imd_query, (record_id, self.module_name))
-
-        return self
     def load_translations(self, lang, name, field_type, res_id, source, value):
         """
         Load translations to the database.
