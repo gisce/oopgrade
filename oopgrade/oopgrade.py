@@ -711,11 +711,39 @@ def change_column_type(cursor, column_spec):
     """
     for table, spec in list(column_spec.items()):
         for column, new_def in spec:
+            views_with_model = {}
+            # First of all we check if there's any view that uses this field because
+            # it will cause an error when trying to alter column
+            prev_view_chek_sql = """
+                SELECT table_name FROM INFORMATION_SCHEMA.VIEWS WHERE
+                VIEW_DEFINITION LIKE '%{}%' AND  VIEW_DEFINITION LIKE '%{}%'
+            """.format(column, table)
+            cursor.execute(prev_view_chek_sql)
+            model_data = cursor.dictfetchall()
+            for model_info in model_data:
+                view_name = model_info['table_name']
+                model_exists_query = "SELECT count(id) FROM ir_model WHERE name = %s"
+                cursor.execute(model_exists_query, (view_name.replace('_', '.'),))
+                res = cursor.fetchone()
+                # If exists, we store its query to create it again later
+                if len(res) and res[0]:
+                    cursor.execute("SELECT pg_get_viewdef('{}'::regclass) AS query".format(view_name))
+                    view_query = cursor.dictfetchone()
+                    views_with_model.update({view_name: view_query['query']})
+
+            # We drop the affected views to create them later
+            for view_name in views_with_model.keys():
+                logged_query(cursor, 'DROP VIEW IF EXISTS {}'.format(view_name))
+
+            # Now we can alter the column
             logged_query(
-                cursor,
-                'ALTER TABLE %s ALTER COLUMN %s TYPE %s' % (
-                    table, column, new_def)
+                cursor, 'ALTER TABLE %s ALTER COLUMN %s TYPE %s' % (table, column, new_def)
             )
+
+            # Finally we create the dropped views again
+            for view_name, query in views_with_model.items():
+                query = query.replace(';', '')
+                cursor.execute("CREATE OR REPLACE VIEW {} AS ({})".format(view_name, query))
     return True
 
 
