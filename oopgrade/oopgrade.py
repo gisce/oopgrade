@@ -722,7 +722,7 @@ def change_column_type(cursor, column_spec):
             model_data = cursor.dictfetchall()
             for model_info in model_data:
                 view_name = model_info['table_name']
-                model_exists_query = "SELECT count(id) FROM ir_model WHERE name = %s"
+                model_exists_query = "SELECT count(id) FROM ir_model WHERE model = %s"
                 cursor.execute(model_exists_query, (view_name.replace('_', '.'),))
                 res = cursor.fetchone()
                 # If exists, we store its query to create it again later
