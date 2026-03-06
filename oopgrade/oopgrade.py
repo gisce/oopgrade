@@ -962,9 +962,17 @@ class MigrationHelper:
         """
         action = "Updating" if mode == 'update' else "Initializing"
         self.logger.info("{action} XML '{xml_path}'".format(action=action, xml_path=xml_path))
-        load_data(self.cursor, self.module_name, xml_path, idref=None, mode=mode)
-        result_action = "updated" if mode == 'update' else "initialized"
-        self.logger.info("XML successfully {action}.".format(action=result_action))
+        try:
+            load_data(self.cursor, self.module_name, xml_path, idref=None, mode=mode)
+            result_action = "updated" if mode == 'update' else "initialized"
+            self.logger.info("XML successfully {action}.".format(action=result_action))
+        except IOError as err:
+            self.logger.error(
+                "Error loading XML '{xml_path}' for module '{module_name}': {e}".format(
+                    xml_path=xml_path, module_name=self.module_name, e=err
+                )
+            )
+            raise
 
         return self
 
@@ -987,15 +995,23 @@ class MigrationHelper:
             self.logger.warn("No records to update!")
             return self
 
-        if init_record_ids:
-            self.logger.info("Initializing specific records in {xml_path}".format(xml_path=xml_path))
-            load_data_records(self.cursor, self.module_name, xml_path, init_record_ids, mode='init', multi=multi)
-            self.logger.info("XML records successfully initialized.")
+        try:
+            if init_record_ids:
+                self.logger.info("Initializing specific records in {xml_path}".format(xml_path=xml_path))
+                load_data_records(self.cursor, self.module_name, xml_path, init_record_ids, mode='init', multi=multi)
+                self.logger.info("XML records successfully initialized.")
 
-        if update_record_ids:
-            self.logger.info("Updating specific records in {xml_path}".format(xml_path=xml_path))
-            load_data_records(self.cursor, self.module_name, xml_path, update_record_ids, mode='update', multi=multi)
-            self.logger.info("XML records successfully updated.")
+            if update_record_ids:
+                self.logger.info("Updating specific records in {xml_path}".format(xml_path=xml_path))
+                load_data_records(self.cursor, self.module_name, xml_path, update_record_ids, mode='update', multi=multi)
+                self.logger.info("XML records successfully updated.")
+        except IOError as err:
+            self.logger.error(
+                "Error loading XML '{xml_path}' for module '{module_name}': {e}".format(
+                    xml_path=xml_path, module_name=self.module_name, e=err
+                )
+            )
+            raise
 
         return self
 
