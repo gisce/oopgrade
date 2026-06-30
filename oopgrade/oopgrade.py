@@ -5,6 +5,7 @@ if six.PY3:
     from builtins import range
 import os
 import logging
+from datetime import datetime
 from tqdm import tqdm
 from six import string_types
 
@@ -1085,6 +1086,81 @@ class MigrationHelper:
         :rtype: MigrationHelper
         """
         return self.update_xml_records(xml_path, init_record_ids, update_record_ids, multi=True)
+
+    def update_report_banners(self, xml_path, update_record_ids=None, force=False, user_id=1, mode='update'):
+        """Update report banners from XML, preserving history and respecting custom flag.
+
+        For each banner XML record ID, checks whether the ``custom`` flag is set.
+        If ``custom`` is ``True`` and ``force`` is ``False`` the banner is skipped.
+        Before updating a banner, the current ``html`` value is saved as a new
+        ``report.banner.history`` record.
+
+        :param xml_path: Path to the XML file containing the banner records.
+        :type xml_path: str
+        :param update_record_ids: List of XML record IDs to update.
+        :type update_record_ids: list of str or None
+        :param force: If ``True``, update banners even when the ``custom`` flag is set.
+        :type force: bool
+        :param user_id: User ID to record as the author of the change (default: 1).
+        :type user_id: int
+        :param user_id: Check ``noupdate`` flag on the XML.
+        :type user_id: str
+
+        :return: self
+        :rtype: MigrationHelper
+        """
+        if not update_record_ids:
+            self.logger.warn("No banners to update!")
+            return self
+
+        self._create_pool()
+
+        banner_model = self.pool.get('report.banner')
+        history_model = self.pool.get('report.banner.history')
+
+        banners_to_update = []
+
+        for record_id in update_record_ids:
+            query = (
+                "SELECT res_id FROM ir_model_data "
+                "WHERE name = %s AND module = %s AND model = 'report.banner'"
+            )
+            self.cursor.execute(query, (record_id, self.module_name))
+            row = self.cursor.fetchone()
+
+            if not row:
+                self.logger.warning(
+                    "Banner record '%s' not found in ir_model_data. Skipping.",
+                    record_id,
+                )
+                continue
+
+            res_id = row[0]
+            banner = banner_model.browse(self.cursor, 1, res_id)
+
+            if banner.custom and not force:
+                self.logger.info(
+                    "Banner '%s' has custom flag set. Skipping update.", record_id
+                )
+                continue
+
+            old_html = banner.html or ''
+            banners_to_update.append((record_id, res_id, old_html))
+
+        if not banners_to_update:
+            return self
+
+        filtered_ids = [item[0] for item in banners_to_update]
+
+        self.logger.info(
+            "Updating %d banner(s) in %s", len(filtered_ids), xml_path
+        )
+        load_data_records(
+            self.cursor, self.module_name, xml_path, filtered_ids,
+            mode=mode, multi=False,
+        )
+        self.logger.info("Banner(s) successfully updated.")
+        return self
 
     def update_access_csv(self, model_ids, filename='security/ir.model.access.csv', mode='update'):
         """Update access rules from a CSV file.
