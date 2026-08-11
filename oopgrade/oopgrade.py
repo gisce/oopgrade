@@ -382,7 +382,7 @@ def set_stored_function(cr, obj, fields):
         logger.info("Storing computed values of fields.function: [%s]", ", ".join(fields))
         field = obj._columns[fields[0]]
         for ids in tqdm(chunks(ids_lst, 100)):
-            res = field.get(cr, obj, ids, fields[0], 1, {})
+            res = field.get(cr, obj, ids, fields, 1, {})
             for key, vals in list(res.items()):
                 for ff in fields:
                     field = obj._columns[ff]
