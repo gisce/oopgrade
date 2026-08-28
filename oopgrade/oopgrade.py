@@ -165,11 +165,19 @@ def load_data_records(cr, module_name, filename, record_ids, mode='update', mult
     for record_id in record_ids:
         logger.info("{}: Loading record id: {}".format(module_name, record_id))
         if not multi:
-            rec = doc.findall("//*[@id='{}']".format(record_id))[0]
+            try:
+                rec = doc.findall("//*[@id='{}']".format(record_id))[0]
+            except Exception as e:
+                logger.error('{}: Failing find record id {}'.format(module_name, record_id))
+                raise e
             data = doc.findall("//*[@id='{}']/..".format(record_id))[0]
             xml_to_import._tags[rec.tag](cr, rec, data)
         else:
-            recs = doc.findall("//*[@id='{}']".format(record_id))
+            try:
+                recs = doc.findall("//*[@id='{}']".format(record_id))
+            except Exception as e:
+                logger.error('{}: Failing find record id {}'.format(module_name, record_id))
+                raise e
             datas = doc.findall("//*[@id='{}']/..".format(record_id))
             for rec, data in zip(recs, datas):
                 xml_to_import._tags[rec.tag](cr, rec, data)
