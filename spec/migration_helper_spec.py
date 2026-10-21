@@ -20,12 +20,12 @@ with description('MigrationHelper'):
             self.helper._create_pool = Mock()
             self.helper.pool = self.model_pool
 
-        with it('updates the translations and remains chainable'):
+        with it('updates the translations using the default user'):
             self.module_o.search.return_value = [42]
 
             result = self.helper.update_translations()
 
-            expect(result).to(be(self.helper))
+            expect(result).to(be_none)
             expect(self.model_pool.get.call_args_list).to(equal([
                 call('ir.module.module')
             ]))
@@ -36,10 +36,13 @@ with description('MigrationHelper'):
                 call(self.cursor, 1, [42])
             ]))
 
-        with it('uses the provided user ID'):
+        with it('uses the user ID provided to the helper'):
             self.module_o.search.return_value = [42]
+            self.helper = MigrationHelper(self.cursor, 'test_module', uid=7)
+            self.helper._create_pool = Mock()
+            self.helper.pool = self.model_pool
 
-            self.helper.update_translations(uid=7)
+            self.helper.update_translations()
 
             expect(self.module_o.search.call_args_list).to(equal([
                 call(self.cursor, 7, [('name', '=', 'test_module')])
@@ -53,5 +56,5 @@ with description('MigrationHelper'):
 
             result = self.helper.update_translations()
 
-            expect(result).to(be(self.helper))
+            expect(result).to(be_none)
             expect(self.module_o.update_translations.called).to(be_false)

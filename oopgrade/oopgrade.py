@@ -893,7 +893,7 @@ def load_translation(cursor, lang, name, type, res_id, src, value):
 class MigrationHelper:
     """Helper class for GISCE ERP migrations."""
 
-    def __init__(self, cursor, module_name, logger_name='openerp.migration'):
+    def __init__(self, cursor, module_name, logger_name='openerp.migration', uid=1):
         """Initialize the migration helper.
 
         :param cursor: Database cursor (e.g. psycopg2 cursor).
@@ -902,10 +902,13 @@ class MigrationHelper:
         :type module_name: str
         :param logger_name: Name of the logger (default: 'openerp.migration').
         :type logger_name: str
+        :param uid: User ID used to execute ORM operations (default: 1).
+        :type uid: int
         """
         self.cursor = cursor
         self.logger = logging.getLogger(logger_name)
         self.module_name = module_name
+        self.uid = uid
         self.pool = None
 
     def _create_pool(self):
@@ -1168,32 +1171,24 @@ class MigrationHelper:
 
         return self
 
-    def update_translations(self, uid=1):
+    def update_translations(self):
         """Update the translations provided by the current module.
-
-        :param uid: User ID used to execute the translation update.
-        :type uid: int
-
-        :return: self
-        :rtype: MigrationHelper
         """
         self._create_pool()
 
         module_o = self.pool.get('ir.module.module')
         module_ids = module_o.search(
-            self.cursor, uid, [('name', '=', self.module_name)]
+            self.cursor, self.uid, [('name', '=', self.module_name)]
         )
         if not module_ids:
             self.logger.warning(
                 "Module '%s' not found; translations were not updated.",
                 self.module_name
             )
-            return self
+            return
 
         self.logger.info(
             "Updating translations for module '%s'", self.module_name
         )
-        module_o.update_translations(self.cursor, uid, module_ids)
+        module_o.update_translations(self.cursor, self.uid, module_ids)
         self.logger.info("Translations successfully updated.")
-
-        return self
