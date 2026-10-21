@@ -1167,3 +1167,33 @@ class MigrationHelper:
         self.logger.info("Translation successfully loaded")
 
         return self
+
+    def update_translations(self, uid=1):
+        """Update the translations provided by the current module.
+
+        :param uid: User ID used to execute the translation update.
+        :type uid: int
+
+        :return: self
+        :rtype: MigrationHelper
+        """
+        self._create_pool()
+
+        module_o = self.pool.get('ir.module.module')
+        module_ids = module_o.search(
+            self.cursor, uid, [('name', '=', self.module_name)]
+        )
+        if not module_ids:
+            self.logger.warning(
+                "Module '%s' not found; translations were not updated.",
+                self.module_name
+            )
+            return self
+
+        self.logger.info(
+            "Updating translations for module '%s'", self.module_name
+        )
+        module_o.update_translations(self.cursor, uid, module_ids)
+        self.logger.info("Translations successfully updated.")
+
+        return self
